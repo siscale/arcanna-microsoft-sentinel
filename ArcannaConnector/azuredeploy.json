@@ -5,17 +5,10 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "3377052824610812914"
+      "templateHash": "16898550844993229298"
     }
   },
   "parameters": {
-    "location": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Azure region for the Arcanna custom connector."
-      }
-    },
     "CustomConnectorName": {
       "type": "string",
       "defaultValue": "arcanna",
@@ -971,7 +964,7 @@
       "type": "Microsoft.Web/customApis",
       "apiVersion": "2016-06-01",
       "name": "[parameters('CustomConnectorName')]",
-      "location": "[parameters('location')]",
+      "location": "[resourceGroup().location]",
       "properties": {
         "apiType": "Rest",
         "displayName": "Arcanna",
