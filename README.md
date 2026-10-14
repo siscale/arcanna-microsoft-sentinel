@@ -6,7 +6,7 @@ Deploy the Arcanna integration for Microsoft Sentinel in two steps.
 
 The custom connector provides Microsoft Logic Apps access to the Arcanna API.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Ffeature%2Fguid-event-id-pipeline-tag%2FArcannaConnector%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json)
 
 During deployment provide:
 
@@ -20,7 +20,7 @@ During deployment provide:
 
 This installs the Arcanna solution content into an existing Microsoft Sentinel workspace.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Ffeature%2Fguid-event-id-pipeline-tag%2FArcannaSentinelSolution%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaSentinelSolution%2Fazuredeploy.json)
 
 During deployment provide:
 

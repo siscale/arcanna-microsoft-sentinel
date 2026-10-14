@@ -1819,7 +1819,7 @@
             "title": "Arcanna - Triage Microsoft Sentinel incidents",
             "description": "Submits newly created Microsoft Sentinel incidents to Arcanna, polls for the Arcanna decision, and writes the result back to the incident.",
             "prerequisites": [
-              "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Ffeature%2Fguid-event-id-pipeline-tag%2FArcannaConnector%2Fazuredeploy.json",
+              "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json",
               "Have an Arcanna API key assigned to an Arcanna integration.",
               "Know the Arcanna Pipeline ID that new incidents should be sent to by default."
             ],
@@ -2297,7 +2297,7 @@
             "title": "Arcanna - Send analyst feedback",
             "description": "Sends Microsoft Sentinel incident closure feedback to Arcanna so analyst outcomes are returned to the Arcanna pipeline recorded on the incident by the triage playbook.",
             "prerequisites": [
-              "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Ffeature%2Fguid-event-id-pipeline-tag%2FArcannaConnector%2Fazuredeploy.json",
+              "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json",
               "Have an Arcanna API key assigned to an Arcanna integration."
             ],
             "postDeployment": [

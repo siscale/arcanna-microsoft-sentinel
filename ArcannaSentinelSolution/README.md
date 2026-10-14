@@ -6,11 +6,11 @@ This template deploys the Arcanna Microsoft Sentinel solution content into an ex
 
 Deploy the Arcanna Custom Connector first:
 
-[Deploy Arcanna Custom Connector](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Ffeature%2Fguid-event-id-pipeline-tag%2FArcannaConnector%2Fazuredeploy.json)
+[Deploy Arcanna Custom Connector](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json)
 
 ## Deploy Arcanna Sentinel Solution
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Ffeature%2Fguid-event-id-pipeline-tag%2FArcannaSentinelSolution%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaSentinelSolution%2Fazuredeploy.json)
 
 During deployment provide:
 
