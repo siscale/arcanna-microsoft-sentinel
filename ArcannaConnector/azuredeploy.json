@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "16898550844993229298"
+      "templateHash": "4713045697751143032"
     }
   },
   "parameters": {
@@ -16,11 +16,22 @@
         "description": "Name of the Arcanna custom connector."
       }
     },
-    "ArcannaBaseUrl": {
+    "ArcannaScheme": {
       "type": "string",
-      "minLength": 8,
+      "defaultValue": "https",
+      "allowedValues": [
+        "https",
+        "http"
+      ],
       "metadata": {
-        "description": "Arcanna endpoint origin, including scheme and port if required. Do not include /api/v1."
+        "description": "Protocol used to connect to the Arcanna API."
+      }
+    },
+    "ArcannaHost": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "Arcanna hostname or IP address, including port if required. Do not include scheme or /api/v1."
       }
     }
   },
@@ -35,7 +46,7 @@
       "host": "__ARCANNA_HOST_AND_PORT__",
       "basePath": "/api/v1",
       "schemes": [
-        "https"
+        "__ARCANNA_SCHEME__"
       ],
       "consumes": [
         "application/json"
@@ -954,10 +965,8 @@
         "runtimePipelineSelection": "Pipeline IDs are selected at runtime per action and may come from previous connector actions such as Get Job by Name. They are not deployment-level parameters."
       }
     },
-    "normalizedBaseUrl": "[if(endsWith(parameters('ArcannaBaseUrl'), '/'), substring(parameters('ArcannaBaseUrl'), 0, sub(length(parameters('ArcannaBaseUrl')), 1)), parameters('ArcannaBaseUrl'))]",
-    "isHttps": "[startsWith(toLower(variables('normalizedBaseUrl')), 'https://')]",
-    "scheme": "[if(variables('isHttps'), 'https', 'http')]",
-    "hostAndPort": "[replace(replace(variables('normalizedBaseUrl'), 'https://', ''), 'http://', '')]"
+    "hostAndPort": "[trim(parameters('ArcannaHost'))]",
+    "normalizedBaseUrl": "[format('{0}://{1}', parameters('ArcannaScheme'), variables('hostAndPort'))]"
   },
   "resources": [
     {
@@ -987,7 +996,7 @@
             }
           }
         },
-        "swagger": "[union(variables('$fxv#0'), createObject('host', variables('hostAndPort'), 'basePath', '/api/v1', 'schemes', createArray(variables('scheme'))))]"
+        "swagger": "[union(variables('$fxv#0'), createObject('host', variables('hostAndPort'), 'basePath', '/api/v1', 'schemes', createArray(parameters('ArcannaScheme'))))]"
       }
     }
   ],
