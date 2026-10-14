@@ -160,7 +160,7 @@
                 "apiType": "Rest",
                 "displayName": "Arcanna",
                 "description": "Arcanna connector for Microsoft Azure Logic Apps and Microsoft Sentinel playbooks.",
-                "iconUri": "https://raw.githubusercontent.com/siscale/arcanna-microsoft-sentinel/main/Images/Arcanna.png",
+                "iconUri": "https://raw.githubusercontent.com/siscale/arcanna-microsoft-sentinel/feature/guid-event-id-pipeline-tag/Images/Arcanna.png",
                 "brandColor": "#FF255A",
                 "backendService": {
                   "serviceUrl": "[[uri(variables('normalizedBaseUrl'), '/api/v1')]"
