@@ -45,8 +45,12 @@ For each playbook provide the required parameters, including:
 - Azure region
 - Arcanna custom connector name, normally `arcanna`
 - Arcanna API key
-- Arcanna Pipeline ID
+- Arcanna Pipeline ID (triage only): the pipeline new incidents are sent to by default
 - Microsoft Sentinel workspace name
+
+The triage playbook tags each incident with `ArcannaPipeline:<id>` and the feedback playbook sends feedback to that pipeline, so you can change or route pipelines in the triage **Send Event** step without touching feedback. Arcanna Event IDs are Sentinel incident GUIDs.
+
+For multiple Sentinel workspaces, repeat the installation per workspace and use a separate resource group for each workspace's connector and playbooks.
 
 ## Deployment order
 

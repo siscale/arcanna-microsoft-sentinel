@@ -11,21 +11,21 @@
       "minLength": 1,
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Not used, but needed to pass arm-ttk test `Location-Should-Not-Be-Hardcoded`.  We instead use the `workspace-location` which is derived from the LA workspace"
+        "description": "Not used by this solution; leave the default. Resources are deployed to the workspace region below."
       }
     },
     "workspace-location": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "[concat('Region to deploy solution resources -- separate from location selection',parameters('location'))]"
+        "description": "Region of your Microsoft Sentinel (Log Analytics) workspace, for example eastus."
       }
     },
     "workspace": {
       "defaultValue": "",
       "type": "string",
       "metadata": {
-        "description": "Workspace name for Log Analytics where Microsoft Sentinel is setup"
+        "description": "Name of your Microsoft Sentinel (Log Analytics) workspace."
       }
     }
   },
@@ -33,7 +33,7 @@
     "email": "support@arcanna.ai",
     "_email": "[variables('email')]",
     "_solutionName": "Arcanna",
-    "_solutionVersion": "3.0.1",
+    "_solutionVersion": "3.0.2",
     "solutionId": "arcannaai.azure-sentinel-solution-arcanna",
     "_solutionId": "[variables('solutionId')]",
     "ArcannaConnector": "ArcannaConnector",
@@ -48,7 +48,7 @@
     "blanks": "[replace('b', 'b', '')]",
     "Arcanna-Sentinel-Triage": "Arcanna-Sentinel-Triage",
     "_Arcanna-Sentinel-Triage": "[variables('Arcanna-Sentinel-Triage')]",
-    "playbookVersion2": "1.0",
+    "playbookVersion2": "1.1",
     "playbookContentId2": "Arcanna-Sentinel-Triage",
     "_playbookContentId2": "[variables('playbookContentId2')]",
     "playbookId2": "[resourceId('Microsoft.Logic/workflows', variables('playbookContentId2'))]",
@@ -56,7 +56,7 @@
     "_playbookcontentProductId2": "[concat(take(variables('_solutionId'),50),'-','pl','-', uniqueString(concat(variables('_solutionId'),'-','Playbook','-',variables('_playbookContentId2'),'-', variables('playbookVersion2'))))]",
     "Arcanna-Sentinel-Feedback": "Arcanna-Sentinel-Feedback",
     "_Arcanna-Sentinel-Feedback": "[variables('Arcanna-Sentinel-Feedback')]",
-    "playbookVersion3": "1.0",
+    "playbookVersion3": "1.1",
     "playbookContentId3": "Arcanna-Sentinel-Feedback",
     "_playbookContentId3": "[variables('playbookContentId3')]",
     "playbookId3": "[resourceId('Microsoft.Logic/workflows', variables('playbookContentId3'))]",
@@ -74,7 +74,7 @@
         "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
       ],
       "properties": {
-        "description": "ArcannaConnector Playbook with template version 3.0.1",
+        "description": "ArcannaConnector Playbook with template version 3.0.2",
         "mainTemplate": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
           "contentVersion": "[variables('playbookVersion1')]",
@@ -160,6 +160,8 @@
                 "apiType": "Rest",
                 "displayName": "Arcanna",
                 "description": "Arcanna connector for Microsoft Azure Logic Apps and Microsoft Sentinel playbooks.",
+                "iconUri": "https://raw.githubusercontent.com/siscale/arcanna-microsoft-sentinel/main/Images/Arcanna.png",
+                "brandColor": "#FF255A",
                 "backendService": {
                   "serviceUrl": "[[uri(variables('normalizedBaseUrl'), '/api/v1')]"
                 },
@@ -1138,9 +1140,9 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "10346756398375129022"
+              "templateHash": "13193220721381565018"
             },
-            "lastUpdateTime": "2026-10-14T06:04:21.608Z",
+            "lastUpdateTime": "2026-10-14T15:51:48.661Z",
             "releaseNotes": {
               "version": "1.0",
               "title": "[variables('blanks')]",
@@ -1172,7 +1174,7 @@
         "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
       ],
       "properties": {
-        "description": "Arcanna-Sentinel-Triage Playbook with template version 3.0.1",
+        "description": "Arcanna-Sentinel-Triage Playbook with template version 3.0.2",
         "mainTemplate": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
           "contentVersion": "[variables('playbookVersion2')]",
@@ -1200,7 +1202,7 @@
             "ArcannaPipelineId": {
               "type": "int",
               "metadata": {
-                "description": "Arcanna pipeline ID used by this playbook. This is configured per playbook and is not a global Arcanna connector setting."
+                "description": "Arcanna pipeline that new incidents are sent to by default. You can change this or make it dynamic in the Send Event step; the feedback playbook follows the pipeline recorded on each incident in the ArcannaPipeline:<id> tag."
               }
             },
             "SentinelWorkspaceName": {
@@ -1265,7 +1267,7 @@
               "tags": {
                 "LogicAppsCategory": "security",
                 "hidden-SentinelTemplateName": "[[parameters('PlaybookName')]",
-                "hidden-SentinelTemplateVersion": "1.0",
+                "hidden-SentinelTemplateVersion": "1.1",
                 "hidden-SentinelWorkspaceId": "[[variables('workspaceResourceId')]"
               },
               "identity": {
@@ -1309,7 +1311,34 @@
                             "incident": "@triggerBody()?['object']?['properties']"
                           }
                         },
-                        "path": "/events/@{encodeURIComponent(string(triggerBody()?['object']?['properties']?['incidentNumber']))}"
+                        "path": "/events/@{encodeURIComponent(string(triggerBody()?['object']?['name']))}"
+                      }
+                    },
+                    "Tag_Arcanna_Pipeline": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                          }
+                        },
+                        "method": "put",
+                        "body": {
+                          "incidentArmId": "@triggerBody()?['object']?['id']",
+                          "tagsToAdd": {
+                            "TagsToAdd": [
+                              {
+                                "Tag": "ArcannaPipeline:@{body('Send_Event')?['job_id']}"
+                              }
+                            ]
+                          }
+                        },
+                        "path": "/Incidents"
+                      },
+                      "runAfter": {
+                        "Send_Event": [
+                          "Succeeded"
+                        ]
                       }
                     },
                     "Initialize_Decision_Status": {
@@ -1324,7 +1353,7 @@
                         ]
                       },
                       "runAfter": {
-                        "Send_Event": [
+                        "Tag_Arcanna_Pipeline": [
                           "Succeeded"
                         ]
                       }
@@ -1432,7 +1461,7 @@
                                 "method": "post",
                                 "body": {
                                   "incidentArmId": "@triggerBody()?['object']?['id']",
-                                  "message": "<p class=\"editor-paragraph\"><b><strong class=\"editor-text-bold\">Arcanna Inference Results</strong></b></p><br><ul class=\"editor-list-ul\"><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Event ID: </strong></b>@{body('Get_Decision')?['event_id']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Ingest Timestamp: </strong></b>@{body('Get_Decision')?['ingest_timestamp']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Status: </strong></b>@{body('Get_Decision')?['status']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Result: </strong></b>@{body('Get_Decision')?['result']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Result Label: </strong></b>@{body('Get_Decision')?['result_label']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Bucket State: </strong></b>@{body('Get_Decision')?['bucket_state']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Knowledge Base State: </strong></b>@{body('Get_Decision')?['knowledge_base_state']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Outlier: </strong></b>@{body('Get_Decision')?['outlier']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Confidence Score: </strong></b>@{body('Get_Decision')?['confidence_score']}%</li></ul>"
+                                  "message": "<p class=\"editor-paragraph\"><b><strong class=\"editor-text-bold\">Arcanna Inference Results</strong></b></p><br><ul class=\"editor-list-ul\"><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Event ID: </strong></b>@{body('Get_Decision')?['event_id']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Pipeline ID: </strong></b>@{body('Send_Event')?['job_id']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Ingest Timestamp: </strong></b>@{body('Get_Decision')?['ingest_timestamp']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Status: </strong></b>@{body('Get_Decision')?['status']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Result: </strong></b>@{body('Get_Decision')?['result']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Result Label: </strong></b>@{body('Get_Decision')?['result_label']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Bucket State: </strong></b>@{body('Get_Decision')?['bucket_state']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Knowledge Base State: </strong></b>@{body('Get_Decision')?['knowledge_base_state']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Outlier: </strong></b>@{body('Get_Decision')?['outlier']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Confidence Score: </strong></b>@{body('Get_Decision')?['confidence_score']}%</li></ul>"
                                 },
                                 "path": "/Incidents/Comment"
                               },
@@ -1785,14 +1814,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "1576927317556859106"
+              "templateHash": "13372646130968018200"
             },
             "title": "Arcanna - Triage Microsoft Sentinel incidents",
             "description": "Submits newly created Microsoft Sentinel incidents to Arcanna, polls for the Arcanna decision, and writes the result back to the incident.",
             "prerequisites": [
               "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json",
               "Have an Arcanna API key assigned to an Arcanna integration.",
-              "Know the Arcanna Pipeline ID that this playbook should use."
+              "Know the Arcanna Pipeline ID that new incidents should be sent to by default."
             ],
             "postDeployment": [
               "Authorize the Arcanna API connection if Azure requests authorization.",
@@ -1808,6 +1837,13 @@
               "Response"
             ],
             "releaseNotes": [
+              {
+                "version": "1.1",
+                "title": "Incident GUID event IDs and pipeline tag",
+                "notes": [
+                  "Uses the Sentinel incident GUID as the Arcanna Event ID (unique across workspaces) and tags each incident with ArcannaPipeline:<id> so feedback follows the pipeline actually used."
+                ]
+              },
               {
                 "version": "1.0",
                 "title": "Initial release",
@@ -1845,7 +1881,7 @@
         "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
       ],
       "properties": {
-        "description": "Arcanna-Sentinel-Feedback Playbook with template version 3.0.1",
+        "description": "Arcanna-Sentinel-Feedback Playbook with template version 3.0.2",
         "mainTemplate": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
           "contentVersion": "[variables('playbookVersion3')]",
@@ -1868,12 +1904,6 @@
               "type": "securestring",
               "metadata": {
                 "description": "Arcanna API key assigned to an Arcanna integration."
-              }
-            },
-            "ArcannaPipelineId": {
-              "type": "int",
-              "metadata": {
-                "description": "Arcanna pipeline ID used by this playbook. This is configured per playbook and is not a global Arcanna connector setting."
               }
             },
             "SentinelWorkspaceName": {
@@ -1938,7 +1968,7 @@
               "tags": {
                 "LogicAppsCategory": "security",
                 "hidden-SentinelTemplateName": "[[parameters('PlaybookName')]",
-                "hidden-SentinelTemplateVersion": "1.0",
+                "hidden-SentinelTemplateVersion": "1.1",
                 "hidden-SentinelWorkspaceId": "[[variables('workspaceResourceId')]"
               },
               "identity": {
@@ -1970,20 +2000,11 @@
                       "type": "Compose",
                       "inputs": "@if(or(equals(triggerBody()?['object']?['properties']?['classification'],'FalsePositive'),equals(triggerBody()?['object']?['properties']?['classification'],'BenignPositive')),'Drop','Escalate')"
                     },
-                    "Send_Feedback": {
-                      "type": "ApiConnection",
+                    "Find_Arcanna_Pipeline_Tag": {
+                      "type": "Query",
                       "inputs": {
-                        "host": {
-                          "connection": {
-                            "name": "@parameters('$connections')['arcanna']['connectionId']"
-                          }
-                        },
-                        "method": "put",
-                        "body": {
-                          "feedback": "@outputs('Determine_Feedback')",
-                          "cortex_user": "@coalesce(triggerBody()?['object']?['properties']?['owner']?['assignedTo'], 'Microsoft Sentinel')"
-                        },
-                        "path": "/events/@{encodeURIComponent(string(parameters('ArcannaPipelineId')))}/@{encodeURIComponent(string(triggerBody()?['object']?['properties']?['incidentNumber']))}/feedback"
+                        "from": "@coalesce(triggerBody()?['object']?['properties']?['labels'], json('[]'))",
+                        "where": "@startsWith(string(item()?['labelName']), 'ArcannaPipeline:')"
                       },
                       "runAfter": {
                         "Determine_Feedback": [
@@ -1991,42 +2012,91 @@
                         ]
                       }
                     },
-                    "Add_Feedback_Comment": {
-                      "type": "ApiConnection",
-                      "inputs": {
-                        "host": {
-                          "connection": {
-                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                    "Check_Arcanna_Pipeline_Tag": {
+                      "type": "If",
+                      "expression": {
+                        "and": [
+                          {
+                            "greater": [
+                              "@length(body('Find_Arcanna_Pipeline_Tag'))",
+                              0
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Send_Feedback": {
+                          "type": "ApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connection": {
+                                "name": "@parameters('$connections')['arcanna']['connectionId']"
+                              }
+                            },
+                            "method": "put",
+                            "body": {
+                              "feedback": "@outputs('Determine_Feedback')",
+                              "cortex_user": "@coalesce(triggerBody()?['object']?['properties']?['owner']?['assignedTo'], 'Microsoft Sentinel')"
+                            },
+                            "path": "/events/@{encodeURIComponent(trim(last(split(string(first(body('Find_Arcanna_Pipeline_Tag'))?['labelName']), ':'))))}/@{encodeURIComponent(string(triggerBody()?['object']?['name']))}/feedback"
                           }
                         },
-                        "method": "post",
-                        "body": {
-                          "incidentArmId": "@triggerBody()?['object']?['id']",
-                          "message": "<p><b>Arcanna Feedback Sent</b></p><ul><li><b>Feedback:</b> @{outputs('Determine_Feedback')}</li><li><b>User:</b> @{coalesce(triggerBody()?['object']?['properties']?['owner']?['assignedTo'], 'Microsoft Sentinel')}</li><li><b>Classification:</b> @{triggerBody()?['object']?['properties']?['classification']}</li><li><b>Classification Comment:</b> @{triggerBody()?['object']?['properties']?['classificationComment']}</li></ul>"
-                        },
-                        "path": "/Incidents/Comment"
+                        "Add_Feedback_Comment": {
+                          "type": "ApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connection": {
+                                "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                              }
+                            },
+                            "method": "post",
+                            "body": {
+                              "incidentArmId": "@triggerBody()?['object']?['id']",
+                              "message": "<p><b>Arcanna Feedback Sent</b></p><ul><li><b>Feedback:</b> @{outputs('Determine_Feedback')}</li><li><b>Pipeline ID:</b> @{trim(last(split(string(first(body('Find_Arcanna_Pipeline_Tag'))?['labelName']), ':')))}</li><li><b>Event ID:</b> @{triggerBody()?['object']?['name']}</li><li><b>User:</b> @{coalesce(triggerBody()?['object']?['properties']?['owner']?['assignedTo'], 'Microsoft Sentinel')}</li><li><b>Classification:</b> @{triggerBody()?['object']?['properties']?['classification']}</li><li><b>Classification Comment:</b> @{triggerBody()?['object']?['properties']?['classificationComment']}</li></ul>"
+                            },
+                            "path": "/Incidents/Comment"
+                          },
+                          "runAfter": {
+                            "Send_Feedback": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Add_Feedback_Skipped_Comment": {
+                            "type": "ApiConnection",
+                            "inputs": {
+                              "host": {
+                                "connection": {
+                                  "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                }
+                              },
+                              "method": "post",
+                              "body": {
+                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                "message": "<p><b>Arcanna Feedback Skipped</b></p><p>No <code>ArcannaPipeline:&lt;id&gt;</code> tag was found on this incident, so the Arcanna pipeline for this event is unknown. The tag is added by the Arcanna triage playbook when the incident is sent to Arcanna.</p>"
+                              },
+                              "path": "/Incidents/Comment"
+                            }
+                          }
+                        }
                       },
                       "runAfter": {
-                        "Send_Feedback": [
+                        "Find_Arcanna_Pipeline_Tag": [
                           "Succeeded"
                         ]
                       }
                     }
                   },
                   "parameters": {
-                    "ArcannaPipelineId": {
-                      "type": "Int",
-                      "defaultValue": 0
-                    },
                     "$connections": {
                       "type": "Object"
                     }
                   }
                 },
                 "parameters": {
-                  "ArcannaPipelineId": {
-                    "value": "[[parameters('ArcannaPipelineId')]"
-                  },
                   "$connections": {
                     "value": {
                       "azuresentinel": {
@@ -2222,14 +2292,13 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "4765577511010701528"
+              "templateHash": "9735602211444802930"
             },
             "title": "Arcanna - Send analyst feedback",
-            "description": "Sends Microsoft Sentinel incident closure feedback to Arcanna so analyst outcomes can be returned to the configured Arcanna pipeline.",
+            "description": "Sends Microsoft Sentinel incident closure feedback to Arcanna so analyst outcomes are returned to the Arcanna pipeline recorded on the incident by the triage playbook.",
             "prerequisites": [
               "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json",
-              "Have an Arcanna API key assigned to an Arcanna integration.",
-              "Know the Arcanna Pipeline ID that this playbook should use."
+              "Have an Arcanna API key assigned to an Arcanna integration."
             ],
             "postDeployment": [
               "Authorize the Arcanna API connection if Azure requests authorization.",
@@ -2242,6 +2311,13 @@
               "Response"
             ],
             "releaseNotes": [
+              {
+                "version": "1.1",
+                "title": "Incident GUID event IDs and pipeline tag",
+                "notes": [
+                  "Uses the Sentinel incident GUID as the Arcanna Event ID and reads the pipeline from the ArcannaPipeline:<id> incident tag written by triage. The ArcannaPipelineId parameter was removed."
+                ]
+              },
               {
                 "version": "1.0",
                 "title": "Initial release",
@@ -2275,7 +2351,7 @@
       "apiVersion": "2023-04-01-preview",
       "location": "[parameters('workspace-location')]",
       "properties": {
-        "version": "3.0.1",
+        "version": "3.0.2",
         "kind": "Solution",
         "contentSchemaVersion": "3.0.0",
         "displayName": "Arcanna",
