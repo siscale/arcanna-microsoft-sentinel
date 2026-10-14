@@ -160,6 +160,8 @@
                 "apiType": "Rest",
                 "displayName": "Arcanna",
                 "description": "Arcanna connector for Microsoft Azure Logic Apps and Microsoft Sentinel playbooks.",
+                "iconUri": "https://raw.githubusercontent.com/siscale/arcanna-microsoft-sentinel/main/Images/Arcanna.png",
+                "brandColor": "#FF255A",
                 "backendService": {
                   "serviceUrl": "[[uri(variables('normalizedBaseUrl'), '/api/v1')]"
                 },
@@ -1138,9 +1140,9 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "10346756398375129022"
+              "templateHash": "13193220721381565018"
             },
-            "lastUpdateTime": "2026-10-14T12:27:31.237Z",
+            "lastUpdateTime": "2026-10-14T15:51:48.661Z",
             "releaseNotes": {
               "version": "1.0",
               "title": "[variables('blanks')]",
