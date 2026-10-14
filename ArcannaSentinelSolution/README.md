@@ -30,5 +30,5 @@ For playbook creation provide:
 - `location` — Azure region, for example `eastus`
 - `ArcannaCustomConnectorName` — normally `arcanna`
 - `ArcannaApiKey` — Arcanna API key
-- `ArcannaPipelineId` — Arcanna pipeline/job ID
+- `ArcannaPipelineId` — triage only: Arcanna pipeline new incidents are sent to by default. The feedback playbook reads the pipeline from the `ArcannaPipeline:<id>` tag that triage adds to each incident.
 - `SentinelWorkspaceName` — Microsoft Sentinel workspace name
