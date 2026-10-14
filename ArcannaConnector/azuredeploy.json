@@ -1,0 +1,1006 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.48.1.52935",
+      "templateHash": "18364712222331532803"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for the Arcanna custom connector."
+      }
+    },
+    "CustomConnectorName": {
+      "type": "string",
+      "defaultValue": "arcanna",
+      "metadata": {
+        "description": "Name of the Arcanna custom connector."
+      }
+    },
+    "ArcannaBaseUrl": {
+      "type": "string",
+      "minLength": 8,
+      "metadata": {
+        "description": "Arcanna endpoint origin, including scheme and port if required. Do not include /api/v1."
+      }
+    }
+  },
+  "variables": {
+    "$fxv#0": {
+      "swagger": "2.0",
+      "info": {
+        "title": "Arcanna",
+        "description": "Arcanna connector for Microsoft Azure Logic Apps.",
+        "version": "1.0.0"
+      },
+      "host": "__ARCANNA_HOST_AND_PORT__",
+      "basePath": "/api/v1",
+      "schemes": [
+        "https"
+      ],
+      "consumes": [
+        "application/json"
+      ],
+      "produces": [
+        "application/json"
+      ],
+      "securityDefinitions": {
+        "api_key": {
+          "type": "apiKey",
+          "name": "X-Arcanna-Api-Key",
+          "in": "header",
+          "x-ms-summary": "Arcanna API Key",
+          "description": "API key used to authenticate requests to Arcanna."
+        }
+      },
+      "security": [
+        {
+          "api_key": []
+        }
+      ],
+      "paths": {
+        "/events/": {
+          "post": {
+            "operationId": "SendEvent",
+            "summary": "Send Event",
+            "description": "Sends an event payload to Arcanna for processing. Arcanna generates the event ID.",
+            "tags": [
+              "Event ingestion"
+            ],
+            "parameters": [
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/SendEventRequest"
+                },
+                "x-ms-summary": "Event",
+                "description": "Event data to send to Arcanna."
+              }
+            ],
+            "responses": {
+              "201": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/RawEventResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/events/{event_id}": {
+          "post": {
+            "operationId": "SendEventWithId",
+            "summary": "Send Event with ID",
+            "description": "Sends an event payload to Arcanna using a caller-provided event identifier.",
+            "tags": [
+              "Event ingestion"
+            ],
+            "parameters": [
+              {
+                "name": "event_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Event ID",
+                "description": "Identifier of the event in Arcanna."
+              },
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/SendEventRequest"
+                },
+                "x-ms-summary": "Event",
+                "description": "Event data to send to Arcanna."
+              }
+            ],
+            "responses": {
+              "201": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/RawEventResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/events/{job_id}/{event_id}": {
+          "get": {
+            "operationId": "GetDecision",
+            "summary": "Get Decision",
+            "description": "Retrieves Arcanna's decision and inference status for a previously ingested event.",
+            "tags": [
+              "Event retrieval"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              },
+              {
+                "name": "event_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Event ID",
+                "description": "Identifier of the event in Arcanna."
+              },
+              {
+                "name": "storage_name",
+                "in": "query",
+                "required": false,
+                "type": "string",
+                "x-ms-summary": "Storage Name",
+                "description": "Optional Arcanna storage identifier used when events from multiple inputs are stored separately in the Arcanna backend.",
+                "x-ms-visibility": "advanced"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/InferenceResultResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/events/{job_id}/{event_id}/export": {
+          "get": {
+            "operationId": "GetFullEvent",
+            "summary": "Get Full Event",
+            "description": "Retrieves the full event stored by Arcanna, including any fields or enrichments added during processing.",
+            "tags": [
+              "Event retrieval"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              },
+              {
+                "name": "event_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Event ID",
+                "description": "Identifier of the event in Arcanna."
+              },
+              {
+                "name": "storage_name",
+                "in": "query",
+                "required": false,
+                "type": "string",
+                "x-ms-summary": "Storage Name",
+                "description": "Optional Arcanna storage identifier used when the same event may exist across multiple logical storages.",
+                "x-ms-visibility": "advanced"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/ExportEvent"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/events/{job_id}/{event_id}/feedback": {
+          "put": {
+            "operationId": "SendFeedback",
+            "summary": "Send Feedback",
+            "description": "Sends analyst or system feedback for a previously ingested Arcanna event.",
+            "tags": [
+              "Event feedback"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              },
+              {
+                "name": "event_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Event ID",
+                "description": "Identifier of the event in Arcanna."
+              },
+              {
+                "name": "storage_name",
+                "in": "query",
+                "required": false,
+                "type": "string",
+                "x-ms-summary": "Storage Name",
+                "description": "Optional Arcanna storage identifier used when events from multiple inputs are stored separately in the Arcanna backend.",
+                "x-ms-visibility": "advanced"
+              },
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/SendFeedbackRequest"
+                },
+                "x-ms-summary": "Feedback",
+                "description": "Feedback to apply to the Arcanna event."
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/EventFeedbackResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/": {
+          "get": {
+            "operationId": "ListJobs",
+            "summary": "List Jobs",
+            "description": "Lists the Arcanna pipelines available for the configured API key.",
+            "tags": [
+              "Job information"
+            ],
+            "parameters": [],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Job"
+                  }
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/{job_id}": {
+          "get": {
+            "operationId": "GetJobDetails",
+            "summary": "Get Job Details",
+            "description": "Retrieves details for a specific Arcanna pipeline.",
+            "tags": [
+              "Job information"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/Job"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/{job_id}/labels": {
+          "get": {
+            "operationId": "GetJobLabels",
+            "summary": "Get Job Labels",
+            "description": "Retrieves the feedback and decision labels configured for a specific Arcanna pipeline.",
+            "tags": [
+              "Job information"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/get_by_name": {
+          "post": {
+            "tags": [
+              "Job information"
+            ],
+            "summary": "Get Job by Name",
+            "description": "Retrieves details for a specific Arcanna pipeline using its name. The returned Pipeline ID can be used as dynamic content in subsequent actions such as Get Decision or Send Feedback.",
+            "operationId": "GetJobByName",
+            "consumes": [
+              "application/json"
+            ],
+            "produces": [
+              "application/json"
+            ],
+            "parameters": [
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/JobByNameRequest"
+                }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/Job"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/get_by_name/labels": {
+          "post": {
+            "tags": [
+              "Job information"
+            ],
+            "summary": "Get Job Labels by Name",
+            "description": "Retrieves the feedback and decision labels configured for a specific Arcanna pipeline using its name.",
+            "operationId": "GetJobLabelsByName",
+            "consumes": [
+              "application/json"
+            ],
+            "produces": [
+              "application/json"
+            ],
+            "parameters": [
+              {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": {
+                  "$ref": "#/definitions/JobByNameRequest"
+                }
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/{job_id}/start": {
+          "post": {
+            "operationId": "StartJob",
+            "summary": "Start Job",
+            "description": "Starts a specific Arcanna pipeline.",
+            "tags": [
+              "Job actions"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              },
+              {
+                "name": "username",
+                "in": "query",
+                "required": false,
+                "type": "string",
+                "x-ms-summary": "Username",
+                "description": "Optional username associated with the requested job action.",
+                "x-ms-visibility": "advanced"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/JobActionResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/{job_id}/stop": {
+          "post": {
+            "operationId": "StopJob",
+            "summary": "Stop Job",
+            "description": "Stops a specific Arcanna pipeline.",
+            "tags": [
+              "Job actions"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              },
+              {
+                "name": "username",
+                "in": "query",
+                "required": false,
+                "type": "string",
+                "x-ms-summary": "Username",
+                "description": "Optional username associated with the requested job action.",
+                "x-ms-visibility": "advanced"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/JobActionResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/jobs/{job_id}/train": {
+          "post": {
+            "operationId": "TrainJob",
+            "summary": "Train Job",
+            "description": "Trains a specific Arcanna pipeline.",
+            "tags": [
+              "Job actions"
+            ],
+            "parameters": [
+              {
+                "name": "job_id",
+                "in": "path",
+                "required": true,
+                "type": "string",
+                "x-ms-summary": "Pipeline ID",
+                "description": "ID of the Arcanna pipeline associated with the request."
+              },
+              {
+                "name": "username",
+                "in": "query",
+                "required": false,
+                "type": "string",
+                "x-ms-summary": "Username",
+                "description": "Optional username associated with the requested job action.",
+                "x-ms-visibility": "advanced"
+              }
+            ],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/JobActionResponse"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "/health/check": {
+          "get": {
+            "operationId": "CheckConnectivity",
+            "summary": "Check Connectivity",
+            "description": "Checks whether the Arcanna API endpoint is reachable.",
+            "tags": [
+              "Monitoring"
+            ],
+            "parameters": [],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/HealthcheckResponseModel"
+                }
+              }
+            }
+          }
+        },
+        "/health/": {
+          "get": {
+            "operationId": "CheckApiAuthentication",
+            "summary": "Check API Integration",
+            "description": "Checks whether the configured Arcanna API key exists and is assigned to an Arcanna integration.",
+            "tags": [
+              "Monitoring"
+            ],
+            "parameters": [],
+            "responses": {
+              "200": {
+                "description": "Successful Response",
+                "schema": {
+                  "$ref": "#/definitions/StatusResponseModel"
+                }
+              },
+              "422": {
+                "description": "Validation Error",
+                "schema": {
+                  "$ref": "#/definitions/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "definitions": {
+        "SendEventRequest": {
+          "type": "object",
+          "required": [
+            "job_id",
+            "raw_body"
+          ],
+          "properties": {
+            "job_id": {
+              "type": "integer",
+              "x-ms-summary": "Pipeline ID",
+              "description": "ID of the Arcanna pipeline that will process the event.",
+              "x-ms-visibility": "important"
+            },
+            "raw_body": {
+              "type": "object",
+              "additionalProperties": true,
+              "x-ms-summary": "Payload",
+              "description": "JSON event payload to send to Arcanna for processing.",
+              "x-ms-visibility": "important"
+            },
+            "storage_name": {
+              "type": "string",
+              "x-ms-summary": "Storage Name",
+              "description": "Optional Arcanna storage identifier used when events from multiple inputs are stored separately in the Arcanna backend.",
+              "x-ms-visibility": "advanced"
+            }
+          }
+        },
+        "SendFeedbackRequest": {
+          "type": "object",
+          "required": [
+            "cortex_user",
+            "feedback"
+          ],
+          "properties": {
+            "feedback": {
+              "type": "string",
+              "x-ms-summary": "Feedback",
+              "description": "Feedback label to apply to the Arcanna event. The value must match a feedback class configured for the target pipeline.",
+              "x-ms-visibility": "important"
+            },
+            "cortex_user": {
+              "type": "string",
+              "x-ms-summary": "Feedback User",
+              "description": "User or system that provided the feedback.",
+              "x-ms-visibility": "important"
+            }
+          }
+        },
+        "RawEventResponse": {
+          "type": "object",
+          "properties": {
+            "event_id": {
+              "type": "string",
+              "description": "Arcanna event ID."
+            },
+            "storage_tag": {
+              "type": "string",
+              "description": "Storage tag returned by Arcanna."
+            },
+            "job_id": {
+              "type": "integer",
+              "x-ms-summary": "Pipeline ID"
+            },
+            "ingest_timestamp": {
+              "type": "string",
+              "description": "Ingest timestamp returned by Arcanna."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status returned by Arcanna."
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Error message returned by Arcanna."
+            }
+          }
+        },
+        "InferenceResultResponse": {
+          "type": "object",
+          "properties": {
+            "event_id": {
+              "type": "string"
+            },
+            "storage_tag": {
+              "type": "string",
+              "description": "Storage tag returned by Arcanna."
+            },
+            "ingest_timestamp": {
+              "type": "string",
+              "description": "Ingest timestamp returned by Arcanna."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status returned by Arcanna."
+            },
+            "result": {
+              "type": "string",
+              "description": "Result returned by Arcanna."
+            },
+            "result_label": {
+              "type": "string",
+              "description": "Result label returned by Arcanna."
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Error message returned by Arcanna."
+            },
+            "bucket_state": {
+              "type": "string",
+              "description": "Bucket state returned by Arcanna."
+            },
+            "knowledge_base_state": {
+              "type": "string",
+              "description": "Knowledge base state returned by Arcanna."
+            },
+            "outlier": {
+              "type": "boolean",
+              "description": "Outlier indicator returned by Arcanna."
+            },
+            "confidence_score": {
+              "type": "number",
+              "description": "Confidence score returned by Arcanna."
+            }
+          },
+          "additionalProperties": true
+        },
+        "ExportEvent": {
+          "type": "object",
+          "properties": {
+            "event_id": {
+              "type": "string"
+            },
+            "ingest_timestamp": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "arcanna_event": {
+              "type": "object",
+              "additionalProperties": true,
+              "x-ms-summary": "Full Event",
+              "description": "Full Arcanna event object. The object can contain dynamic fields and enrichments added during processing."
+            },
+            "storage_tag": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "EventFeedbackResponse": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Status returned by Arcanna."
+            }
+          }
+        },
+        "Job": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "integer",
+              "x-ms-summary": "Pipeline ID"
+            },
+            "category": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string",
+              "x-ms-summary": "Pipeline Name"
+            },
+            "status": {
+              "type": "string",
+              "description": "Status returned by Arcanna."
+            },
+            "retrain_state": {
+              "type": "string",
+              "description": "Retraining state returned by Arcanna."
+            },
+            "retrain_msg": {
+              "type": "string",
+              "description": "Retraining message returned by Arcanna."
+            },
+            "labels": {
+              "type": "array",
+              "items": {}
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "processed_documents_count": {
+              "type": "integer"
+            },
+            "feedback_documents_count": {
+              "type": "integer"
+            },
+            "last_processed_timestamp": {
+              "type": "string"
+            },
+            "last_feedback_timestamp": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "JobActionResponse": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Status returned by Arcanna."
+            },
+            "error_message": {
+              "type": "string",
+              "description": "Error message returned by Arcanna."
+            }
+          }
+        },
+        "StatusResponseModel": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "boolean",
+              "x-ms-summary": "Integration Configured",
+              "description": "Indicates whether the configured Arcanna API key is assigned to an Arcanna integration."
+            }
+          }
+        },
+        "HealthcheckResponseModel": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "x-ms-summary": "Connectivity Status",
+              "description": "Connectivity status returned by Arcanna."
+            }
+          }
+        },
+        "ValidationError": {
+          "type": "object",
+          "properties": {
+            "loc": {
+              "type": "array",
+              "items": {}
+            },
+            "msg": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "loc",
+            "msg",
+            "type"
+          ]
+        },
+        "HTTPValidationError": {
+          "type": "object",
+          "properties": {
+            "detail": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ValidationError"
+              }
+            }
+          }
+        },
+        "JobByNameRequest": {
+          "type": "object",
+          "required": [
+            "job_name"
+          ],
+          "properties": {
+            "job_name": {
+              "type": "string",
+              "x-ms-summary": "Pipeline Name",
+              "description": "Name of the Arcanna pipeline to retrieve.",
+              "x-ms-visibility": "important"
+            }
+          }
+        }
+      },
+      "x-arcanna-deployment": {
+        "baseUrlParameter": "Arcanna Base URL",
+        "note": "At deployment, split the configured Arcanna Base URL into scheme and host[:port]. Replace schemes[0] and host in this Swagger definition. The Base URL must not include /api/v1.",
+        "runtimePipelineSelection": "Pipeline IDs are selected at runtime per action and may come from previous connector actions such as Get Job by Name. They are not deployment-level parameters."
+      }
+    },
+    "normalizedBaseUrl": "[if(endsWith(parameters('ArcannaBaseUrl'), '/'), substring(parameters('ArcannaBaseUrl'), 0, sub(length(parameters('ArcannaBaseUrl')), 1)), parameters('ArcannaBaseUrl'))]",
+    "isHttps": "[startsWith(toLower(variables('normalizedBaseUrl')), 'https://')]",
+    "scheme": "[if(variables('isHttps'), 'https', 'http')]",
+    "hostAndPort": "[replace(replace(variables('normalizedBaseUrl'), 'https://', ''), 'http://', '')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/customApis",
+      "apiVersion": "2016-06-01",
+      "name": "[parameters('CustomConnectorName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "apiType": "Rest",
+        "displayName": "Arcanna",
+        "description": "Arcanna connector for Microsoft Azure Logic Apps and Microsoft Sentinel playbooks.",
+        "backendService": {
+          "serviceUrl": "[uri(variables('normalizedBaseUrl'), '/api/v1')]"
+        },
+        "connectionParameters": {
+          "api_key": {
+            "type": "securestring",
+            "uiDefinition": {
+              "displayName": "Arcanna API Key",
+              "description": "API key used by Logic Apps to authenticate requests to Arcanna.",
+              "tooltip": "Enter the Arcanna API key assigned to the Arcanna integration.",
+              "constraints": {
+                "tabIndex": 1,
+                "clearText": false,
+                "required": "true"
+              }
+            }
+          }
+        },
+        "swagger": "[union(variables('$fxv#0'), createObject('host', variables('hostAndPort'), 'basePath', '/api/v1', 'schemes', createArray(variables('scheme'))))]"
+      }
+    }
+  ],
+  "outputs": {
+    "customConnectorId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Web/customApis', parameters('CustomConnectorName'))]"
+    }
+  }
+}
