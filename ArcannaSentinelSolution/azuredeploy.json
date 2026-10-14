@@ -1140,7 +1140,7 @@
               "version": "0.48.1.52935",
               "templateHash": "10346756398375129022"
             },
-            "lastUpdateTime": "2026-10-14T12:39:37.258Z",
+            "lastUpdateTime": "2026-10-14T12:27:31.237Z",
             "releaseNotes": {
               "version": "1.0",
               "title": "[variables('blanks')]",
@@ -1219,10 +1219,10 @@
           "variables": {
             "ArcannaConnectionName": "[[format('arcanna-{0}', parameters('PlaybookName'))]",
             "MicrosoftSentinelConnectionName": "[[format('azuresentinel-{0}', parameters('PlaybookName'))]",
-            "sentinelManagedApiId": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'azuresentinel')]",
+            "sentinelManagedApiId": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', resourceGroup().location, 'azuresentinel')]",
             "connection-1": "[[resourceId('Microsoft.Web/customApis', parameters('ArcannaCustomConnectorName'))]",
             "_connection-1": "[[variables('connection-1')]",
-            "connection-2": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'azuresentinel')]",
+            "connection-2": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', variables('workspace-location-inline'), 'azuresentinel')]",
             "_connection-2": "[[variables('connection-2')]",
             "workspace-location-inline": "[concat('[resourceGroup().locatio', 'n]')]",
             "workspace-name": "[parameters('workspace')]",
@@ -1812,7 +1812,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "3171471720014231313"
+              "templateHash": "13372646130968018200"
             },
             "title": "Arcanna - Triage Microsoft Sentinel incidents",
             "description": "Submits newly created Microsoft Sentinel incidents to Arcanna, polls for the Arcanna decision, and writes the result back to the incident.",
@@ -1920,10 +1920,10 @@
           "variables": {
             "ArcannaConnectionName": "[[format('arcanna-{0}', parameters('PlaybookName'))]",
             "MicrosoftSentinelConnectionName": "[[format('azuresentinel-{0}', parameters('PlaybookName'))]",
-            "sentinelManagedApiId": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'azuresentinel')]",
+            "sentinelManagedApiId": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', resourceGroup().location, 'azuresentinel')]",
             "connection-1": "[[resourceId('Microsoft.Web/customApis', parameters('ArcannaCustomConnectorName'))]",
             "_connection-1": "[[variables('connection-1')]",
-            "connection-2": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'azuresentinel')]",
+            "connection-2": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', variables('workspace-location-inline'), 'azuresentinel')]",
             "_connection-2": "[[variables('connection-2')]",
             "workspace-location-inline": "[concat('[resourceGroup().locatio', 'n]')]",
             "workspace-name": "[parameters('workspace')]",
@@ -2290,7 +2290,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "3980176756847120304"
+              "templateHash": "9735602211444802930"
             },
             "title": "Arcanna - Send analyst feedback",
             "description": "Sends Microsoft Sentinel incident closure feedback to Arcanna so analyst outcomes are returned to the Arcanna pipeline recorded on the incident by the triage playbook.",
