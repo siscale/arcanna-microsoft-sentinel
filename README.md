@@ -1,36 +1,63 @@
 # Arcanna for Microsoft Sentinel
 
-Public deployment assets for the Arcanna integration with Microsoft Sentinel.
+Deploy the Arcanna integration for Microsoft Sentinel in two steps.
 
-This repository contains the Azure deployment template for the Arcanna Custom Azure Logic Apps Connector used by the Arcanna Microsoft Sentinel playbooks.
+## 1. Deploy Arcanna Custom Connector
 
-## Arcanna Custom Connector
-
-Deploy the custom connector before creating the Arcanna playbooks in Microsoft Sentinel.
+The custom connector provides Microsoft Logic Apps access to the Arcanna API.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json)
 
-Deployment template:
+During deployment provide:
 
-`ArcannaConnector/azuredeploy.json`
+- Arcanna protocol: `https` or `http`
+- Arcanna host / IP, including port if required
+- Custom connector name, normally `arcanna`
 
-Documentation:
+---
 
-`ArcannaConnector/README.md`
+## 2. Deploy Arcanna Microsoft Sentinel Solution
+
+This installs the Arcanna solution content into an existing Microsoft Sentinel workspace.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaSentinelSolution%2Fazuredeploy.json)
+
+During deployment provide:
+
+- Microsoft Sentinel / Log Analytics workspace name
+- Workspace Azure region
+
+---
+
+## After deployment
+
+Open Microsoft Sentinel and go to:
+
+**Automation → Playbook templates**
+
+Create:
+
+- `Arcanna-Sentinel-Triage`
+- `Arcanna-Sentinel-Feedback`
+
+For each playbook provide the required parameters, including:
+
+- Azure region
+- Arcanna custom connector name, normally `arcanna`
+- Arcanna API key
+- Arcanna Pipeline ID
+- Microsoft Sentinel workspace name
 
 ## Deployment order
 
-1. Deploy the Arcanna Custom Connector.
-2. Open Microsoft Sentinel.
-3. Go to `Automation -> Playbook templates`.
-4. Create the Arcanna Triage and/or Feedback playbook.
-5. Configure the Arcanna API key and pipeline ID during playbook deployment.
-6. Grant Microsoft Sentinel permission to run the playbooks where required.
+1. Deploy the Arcanna Custom Connector
+2. Deploy the Arcanna Microsoft Sentinel Solution
+3. Create the Triage playbook
+4. Create the Feedback playbook
+5. Verify the generated API connections and automation rules
 
 ## Support
 
-Arcanna.ai
-
-support@arcanna.ai
-
+Arcanna.ai  
+support@arcanna.ai  
 https://arcanna.ai/contact
