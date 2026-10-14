@@ -1,0 +1,2341 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "author": "Arcanna.ai - support@arcanna.ai",
+    "comments": "Solution template for Arcanna"
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Not used, but needed to pass arm-ttk test `Location-Should-Not-Be-Hardcoded`.  We instead use the `workspace-location` which is derived from the LA workspace"
+      }
+    },
+    "workspace-location": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "[concat('Region to deploy solution resources -- separate from location selection',parameters('location'))]"
+      }
+    },
+    "workspace": {
+      "defaultValue": "",
+      "type": "string",
+      "metadata": {
+        "description": "Workspace name for Log Analytics where Microsoft Sentinel is setup"
+      }
+    }
+  },
+  "variables": {
+    "email": "support@arcanna.ai",
+    "_email": "[variables('email')]",
+    "_solutionName": "Arcanna",
+    "_solutionVersion": "3.0.1",
+    "solutionId": "arcannaai.azure-sentinel-solution-arcanna",
+    "_solutionId": "[variables('solutionId')]",
+    "ArcannaConnector": "ArcannaConnector",
+    "_ArcannaConnector": "[variables('ArcannaConnector')]",
+    "TemplateEmptyArray": "[json('[]')]",
+    "playbookVersion1": "1.0",
+    "playbookContentId1": "ArcannaConnector",
+    "_playbookContentId1": "[variables('playbookContentId1')]",
+    "playbookTemplateSpecName1": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat(parameters('workspace'),'-lc-',uniquestring(variables('_playbookContentId1'))))]",
+    "workspaceResourceId": "[resourceId('microsoft.OperationalInsights/Workspaces', parameters('workspace'))]",
+    "_playbookcontentProductId1": "[concat(take(variables('_solutionId'),50),'-','lc','-', uniqueString(concat(variables('_solutionId'),'-','LogicAppsCustomConnector','-',variables('_playbookContentId1'),'-', variables('playbookVersion1'))))]",
+    "blanks": "[replace('b', 'b', '')]",
+    "Arcanna-Sentinel-Triage": "Arcanna-Sentinel-Triage",
+    "_Arcanna-Sentinel-Triage": "[variables('Arcanna-Sentinel-Triage')]",
+    "playbookVersion2": "1.0",
+    "playbookContentId2": "Arcanna-Sentinel-Triage",
+    "_playbookContentId2": "[variables('playbookContentId2')]",
+    "playbookId2": "[resourceId('Microsoft.Logic/workflows', variables('playbookContentId2'))]",
+    "playbookTemplateSpecName2": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat(parameters('workspace'),'-pl-',uniquestring(variables('_playbookContentId2'))))]",
+    "_playbookcontentProductId2": "[concat(take(variables('_solutionId'),50),'-','pl','-', uniqueString(concat(variables('_solutionId'),'-','Playbook','-',variables('_playbookContentId2'),'-', variables('playbookVersion2'))))]",
+    "Arcanna-Sentinel-Feedback": "Arcanna-Sentinel-Feedback",
+    "_Arcanna-Sentinel-Feedback": "[variables('Arcanna-Sentinel-Feedback')]",
+    "playbookVersion3": "1.0",
+    "playbookContentId3": "Arcanna-Sentinel-Feedback",
+    "_playbookContentId3": "[variables('playbookContentId3')]",
+    "playbookId3": "[resourceId('Microsoft.Logic/workflows', variables('playbookContentId3'))]",
+    "playbookTemplateSpecName3": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat(parameters('workspace'),'-pl-',uniquestring(variables('_playbookContentId3'))))]",
+    "_playbookcontentProductId3": "[concat(take(variables('_solutionId'),50),'-','pl','-', uniqueString(concat(variables('_solutionId'),'-','Playbook','-',variables('_playbookContentId3'),'-', variables('playbookVersion3'))))]",
+    "_solutioncontentProductId": "[concat(take(variables('_solutionId'),50),'-','sl','-', uniqueString(concat(variables('_solutionId'),'-','Solution','-',variables('_solutionId'),'-', variables('_solutionVersion'))))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+      "apiVersion": "2023-04-01-preview",
+      "name": "[variables('playbookTemplateSpecName1')]",
+      "location": "[parameters('workspace-location')]",
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
+      ],
+      "properties": {
+        "description": "ArcannaConnector Playbook with template version 3.0.1",
+        "mainTemplate": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "[variables('playbookVersion1')]",
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployed resources."
+              }
+            },
+            "CustomConnectorName": {
+              "type": "string",
+              "defaultValue": "arcanna",
+              "metadata": {
+                "description": "Name of the Arcanna custom connector."
+              }
+            },
+            "ArcannaScheme": {
+              "type": "string",
+              "defaultValue": "https",
+              "allowedValues": [
+                "https",
+                "http"
+              ],
+              "metadata": {
+                "description": "Protocol used to connect to the Arcanna API."
+              }
+            },
+            "ArcannaHost": {
+              "type": "string",
+              "minLength": 1,
+              "metadata": {
+                "description": "Arcanna hostname or IP address, including port if required. Do not include scheme or /api/v1."
+              }
+            }
+          },
+          "variables": {
+            "hostAndPort": "[[trim(parameters('ArcannaHost'))]",
+            "normalizedBaseUrl": "[[replace(replace('__SCHEME__://__HOST__', '__SCHEME__', parameters('ArcannaScheme')), '__HOST__', variables('hostAndPort'))]",
+            "operationId-SendEvent": "SendEvent",
+            "_operationId-SendEvent": "[[variables('operationId-SendEvent')]",
+            "operationId-SendEventWithId": "SendEventWithId",
+            "_operationId-SendEventWithId": "[[variables('operationId-SendEventWithId')]",
+            "operationId-GetDecision": "GetDecision",
+            "_operationId-GetDecision": "[[variables('operationId-GetDecision')]",
+            "operationId-GetFullEvent": "GetFullEvent",
+            "_operationId-GetFullEvent": "[[variables('operationId-GetFullEvent')]",
+            "operationId-SendFeedback": "SendFeedback",
+            "_operationId-SendFeedback": "[[variables('operationId-SendFeedback')]",
+            "operationId-ListJobs": "ListJobs",
+            "_operationId-ListJobs": "[[variables('operationId-ListJobs')]",
+            "operationId-GetJobDetails": "GetJobDetails",
+            "_operationId-GetJobDetails": "[[variables('operationId-GetJobDetails')]",
+            "operationId-GetJobLabels": "GetJobLabels",
+            "_operationId-GetJobLabels": "[[variables('operationId-GetJobLabels')]",
+            "operationId-GetJobByName": "GetJobByName",
+            "_operationId-GetJobByName": "[[variables('operationId-GetJobByName')]",
+            "operationId-GetJobLabelsByName": "GetJobLabelsByName",
+            "_operationId-GetJobLabelsByName": "[[variables('operationId-GetJobLabelsByName')]",
+            "operationId-StartJob": "StartJob",
+            "_operationId-StartJob": "[[variables('operationId-StartJob')]",
+            "operationId-StopJob": "StopJob",
+            "_operationId-StopJob": "[[variables('operationId-StopJob')]",
+            "operationId-TrainJob": "TrainJob",
+            "_operationId-TrainJob": "[[variables('operationId-TrainJob')]",
+            "operationId-CheckConnectivity": "CheckConnectivity",
+            "_operationId-CheckConnectivity": "[[variables('operationId-CheckConnectivity')]",
+            "operationId-CheckApiAuthentication": "CheckApiAuthentication",
+            "_operationId-CheckApiAuthentication": "[[variables('operationId-CheckApiAuthentication')]",
+            "workspace-location-inline": "[concat('[resourceGroup().locatio', 'n]')]",
+            "playbookContentId1": "ArcannaConnector",
+            "playbookId1": "[[resourceId('Microsoft.Web/customApis', parameters('CustomConnectorName'))]",
+            "workspace-name": "[parameters('workspace')]",
+            "workspaceResourceId": "[[resourceId('microsoft.OperationalInsights/Workspaces', variables('workspace-name'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/customApis",
+              "apiVersion": "2016-06-01",
+              "name": "[[parameters('CustomConnectorName')]",
+              "location": "[[parameters('location')]",
+              "properties": {
+                "apiType": "Rest",
+                "displayName": "Arcanna",
+                "description": "Arcanna connector for Microsoft Azure Logic Apps and Microsoft Sentinel playbooks.",
+                "backendService": {
+                  "serviceUrl": "[[uri(variables('normalizedBaseUrl'), '/api/v1')]"
+                },
+                "connectionParameters": {
+                  "api_key": {
+                    "type": "securestring",
+                    "uiDefinition": {
+                      "displayName": "Arcanna API Key",
+                      "description": "API key used by Logic Apps to authenticate requests to Arcanna.",
+                      "tooltip": "Enter the Arcanna API key assigned to the Arcanna integration.",
+                      "constraints": {
+                        "tabIndex": 1,
+                        "clearText": false,
+                        "required": "true"
+                      }
+                    }
+                  }
+                },
+                "swagger": {
+                  "swagger": "2.0",
+                  "info": {
+                    "title": "Arcanna",
+                    "description": "Arcanna connector for Microsoft Azure Logic Apps.",
+                    "version": "1.0.0"
+                  },
+                  "host": "[[variables('hostAndPort')]",
+                  "basePath": "/api/v1",
+                  "schemes": [
+                    "[[parameters('ArcannaScheme')]"
+                  ],
+                  "consumes": [
+                    "application/json"
+                  ],
+                  "produces": [
+                    "application/json"
+                  ],
+                  "securityDefinitions": {
+                    "api_key": {
+                      "type": "apiKey",
+                      "name": "X-Arcanna-Api-Key",
+                      "in": "header",
+                      "x-ms-summary": "Arcanna API Key",
+                      "description": "API key used to authenticate requests to Arcanna."
+                    }
+                  },
+                  "security": [
+                    {
+                      "api_key": "[variables('TemplateEmptyArray')]"
+                    }
+                  ],
+                  "paths": {
+                    "/events/": {
+                      "post": {
+                        "operationId": "[[variables('_operationId-SendEvent')]",
+                        "summary": "Send Event",
+                        "description": "Sends an event payload to Arcanna for processing. Arcanna generates the event ID.",
+                        "tags": [
+                          "Event ingestion"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "body",
+                            "in": "body",
+                            "required": true,
+                            "schema": {
+                              "$ref": "#/definitions/SendEventRequest"
+                            },
+                            "x-ms-summary": "Event",
+                            "description": "Event data to send to Arcanna."
+                          }
+                        ],
+                        "responses": {
+                          "201": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/RawEventResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/events/{event_id}": {
+                      "post": {
+                        "operationId": "[[variables('_operationId-SendEventWithId')]",
+                        "summary": "Send Event with ID",
+                        "description": "Sends an event payload to Arcanna using a caller-provided event identifier.",
+                        "tags": [
+                          "Event ingestion"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "event_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Event ID",
+                            "description": "Identifier of the event in Arcanna."
+                          },
+                          {
+                            "name": "body",
+                            "in": "body",
+                            "required": true,
+                            "schema": {
+                              "$ref": "#/definitions/SendEventRequest"
+                            },
+                            "x-ms-summary": "Event",
+                            "description": "Event data to send to Arcanna."
+                          }
+                        ],
+                        "responses": {
+                          "201": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/RawEventResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/events/{job_id}/{event_id}": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-GetDecision')]",
+                        "summary": "Get Decision",
+                        "description": "Retrieves Arcanna's decision and inference status for a previously ingested event.",
+                        "tags": [
+                          "Event retrieval"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          },
+                          {
+                            "name": "event_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Event ID",
+                            "description": "Identifier of the event in Arcanna."
+                          },
+                          {
+                            "name": "storage_name",
+                            "in": "query",
+                            "required": false,
+                            "type": "string",
+                            "x-ms-summary": "Storage Name",
+                            "description": "Optional Arcanna storage identifier used when events from multiple inputs are stored separately in the Arcanna backend.",
+                            "x-ms-visibility": "advanced"
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/InferenceResultResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/events/{job_id}/{event_id}/export": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-GetFullEvent')]",
+                        "summary": "Get Full Event",
+                        "description": "Retrieves the full event stored by Arcanna, including any fields or enrichments added during processing.",
+                        "tags": [
+                          "Event retrieval"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          },
+                          {
+                            "name": "event_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Event ID",
+                            "description": "Identifier of the event in Arcanna."
+                          },
+                          {
+                            "name": "storage_name",
+                            "in": "query",
+                            "required": false,
+                            "type": "string",
+                            "x-ms-summary": "Storage Name",
+                            "description": "Optional Arcanna storage identifier used when the same event may exist across multiple logical storages.",
+                            "x-ms-visibility": "advanced"
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/ExportEvent"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/events/{job_id}/{event_id}/feedback": {
+                      "put": {
+                        "operationId": "[[variables('_operationId-SendFeedback')]",
+                        "summary": "Send Feedback",
+                        "description": "Sends analyst or system feedback for a previously ingested Arcanna event.",
+                        "tags": [
+                          "Event feedback"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          },
+                          {
+                            "name": "event_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Event ID",
+                            "description": "Identifier of the event in Arcanna."
+                          },
+                          {
+                            "name": "storage_name",
+                            "in": "query",
+                            "required": false,
+                            "type": "string",
+                            "x-ms-summary": "Storage Name",
+                            "description": "Optional Arcanna storage identifier used when events from multiple inputs are stored separately in the Arcanna backend.",
+                            "x-ms-visibility": "advanced"
+                          },
+                          {
+                            "name": "body",
+                            "in": "body",
+                            "required": true,
+                            "schema": {
+                              "$ref": "#/definitions/SendFeedbackRequest"
+                            },
+                            "x-ms-summary": "Feedback",
+                            "description": "Feedback to apply to the Arcanna event."
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/EventFeedbackResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-ListJobs')]",
+                        "summary": "List Jobs",
+                        "description": "Lists the Arcanna pipelines available for the configured API key.",
+                        "tags": [
+                          "Job information"
+                        ],
+                        "parameters": "[variables('TemplateEmptyArray')]",
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/definitions/Job"
+                              }
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/{job_id}": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-GetJobDetails')]",
+                        "summary": "Get Job Details",
+                        "description": "Retrieves details for a specific Arcanna pipeline.",
+                        "tags": [
+                          "Job information"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/Job"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/{job_id}/labels": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-GetJobLabels')]",
+                        "summary": "Get Job Labels",
+                        "description": "Retrieves the feedback and decision labels configured for a specific Arcanna pipeline.",
+                        "tags": [
+                          "Job information"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/get_by_name": {
+                      "post": {
+                        "tags": [
+                          "Job information"
+                        ],
+                        "summary": "Get Job by Name",
+                        "description": "Retrieves details for a specific Arcanna pipeline using its name. The returned Pipeline ID can be used as dynamic content in subsequent actions such as Get Decision or Send Feedback.",
+                        "operationId": "[[variables('_operationId-GetJobByName')]",
+                        "consumes": [
+                          "application/json"
+                        ],
+                        "produces": [
+                          "application/json"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "body",
+                            "in": "body",
+                            "required": true,
+                            "schema": {
+                              "$ref": "#/definitions/JobByNameRequest"
+                            }
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/Job"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/get_by_name/labels": {
+                      "post": {
+                        "tags": [
+                          "Job information"
+                        ],
+                        "summary": "Get Job Labels by Name",
+                        "description": "Retrieves the feedback and decision labels configured for a specific Arcanna pipeline using its name.",
+                        "operationId": "[[variables('_operationId-GetJobLabelsByName')]",
+                        "consumes": [
+                          "application/json"
+                        ],
+                        "produces": [
+                          "application/json"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "body",
+                            "in": "body",
+                            "required": true,
+                            "schema": {
+                              "$ref": "#/definitions/JobByNameRequest"
+                            }
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/{job_id}/start": {
+                      "post": {
+                        "operationId": "[[variables('_operationId-StartJob')]",
+                        "summary": "Start Job",
+                        "description": "Starts a specific Arcanna pipeline.",
+                        "tags": [
+                          "Job actions"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          },
+                          {
+                            "name": "username",
+                            "in": "query",
+                            "required": false,
+                            "type": "string",
+                            "x-ms-summary": "Username",
+                            "description": "Optional username associated with the requested job action.",
+                            "x-ms-visibility": "advanced"
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/JobActionResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/{job_id}/stop": {
+                      "post": {
+                        "operationId": "[[variables('_operationId-StopJob')]",
+                        "summary": "Stop Job",
+                        "description": "Stops a specific Arcanna pipeline.",
+                        "tags": [
+                          "Job actions"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          },
+                          {
+                            "name": "username",
+                            "in": "query",
+                            "required": false,
+                            "type": "string",
+                            "x-ms-summary": "Username",
+                            "description": "Optional username associated with the requested job action.",
+                            "x-ms-visibility": "advanced"
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/JobActionResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/jobs/{job_id}/train": {
+                      "post": {
+                        "operationId": "[[variables('_operationId-TrainJob')]",
+                        "summary": "Train Job",
+                        "description": "Trains a specific Arcanna pipeline.",
+                        "tags": [
+                          "Job actions"
+                        ],
+                        "parameters": [
+                          {
+                            "name": "job_id",
+                            "in": "path",
+                            "required": true,
+                            "type": "string",
+                            "x-ms-summary": "Pipeline ID",
+                            "description": "ID of the Arcanna pipeline associated with the request."
+                          },
+                          {
+                            "name": "username",
+                            "in": "query",
+                            "required": false,
+                            "type": "string",
+                            "x-ms-summary": "Username",
+                            "description": "Optional username associated with the requested job action.",
+                            "x-ms-visibility": "advanced"
+                          }
+                        ],
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/JobActionResponse"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/health/check": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-CheckConnectivity')]",
+                        "summary": "Check Connectivity",
+                        "description": "Checks whether the Arcanna API endpoint is reachable.",
+                        "tags": [
+                          "Monitoring"
+                        ],
+                        "parameters": "[variables('TemplateEmptyArray')]",
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/HealthcheckResponseModel"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "/health/": {
+                      "get": {
+                        "operationId": "[[variables('_operationId-CheckApiAuthentication')]",
+                        "summary": "Check API Integration",
+                        "description": "Checks whether the configured Arcanna API key exists and is assigned to an Arcanna integration.",
+                        "tags": [
+                          "Monitoring"
+                        ],
+                        "parameters": "[variables('TemplateEmptyArray')]",
+                        "responses": {
+                          "200": {
+                            "description": "Successful Response",
+                            "schema": {
+                              "$ref": "#/definitions/StatusResponseModel"
+                            }
+                          },
+                          "422": {
+                            "description": "Validation Error",
+                            "schema": {
+                              "$ref": "#/definitions/HTTPValidationError"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "definitions": {
+                    "SendEventRequest": {
+                      "type": "object",
+                      "required": [
+                        "job_id",
+                        "raw_body"
+                      ],
+                      "properties": {
+                        "job_id": {
+                          "type": "integer",
+                          "x-ms-summary": "Pipeline ID",
+                          "description": "ID of the Arcanna pipeline that will process the event.",
+                          "x-ms-visibility": "important"
+                        },
+                        "raw_body": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "x-ms-summary": "Payload",
+                          "description": "JSON event payload to send to Arcanna for processing.",
+                          "x-ms-visibility": "important"
+                        },
+                        "storage_name": {
+                          "type": "string",
+                          "x-ms-summary": "Storage Name",
+                          "description": "Optional Arcanna storage identifier used when events from multiple inputs are stored separately in the Arcanna backend.",
+                          "x-ms-visibility": "advanced"
+                        }
+                      }
+                    },
+                    "SendFeedbackRequest": {
+                      "type": "object",
+                      "required": [
+                        "cortex_user",
+                        "feedback"
+                      ],
+                      "properties": {
+                        "feedback": {
+                          "type": "string",
+                          "x-ms-summary": "Feedback",
+                          "description": "Feedback label to apply to the Arcanna event. The value must match a feedback class configured for the target pipeline.",
+                          "x-ms-visibility": "important"
+                        },
+                        "cortex_user": {
+                          "type": "string",
+                          "x-ms-summary": "Feedback User",
+                          "description": "User or system that provided the feedback.",
+                          "x-ms-visibility": "important"
+                        }
+                      }
+                    },
+                    "RawEventResponse": {
+                      "type": "object",
+                      "properties": {
+                        "event_id": {
+                          "type": "string",
+                          "description": "Arcanna event ID."
+                        },
+                        "storage_tag": {
+                          "type": "string",
+                          "description": "Storage tag returned by Arcanna."
+                        },
+                        "job_id": {
+                          "type": "integer",
+                          "x-ms-summary": "Pipeline ID"
+                        },
+                        "ingest_timestamp": {
+                          "type": "string",
+                          "description": "Ingest timestamp returned by Arcanna."
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Status returned by Arcanna."
+                        },
+                        "error_message": {
+                          "type": "string",
+                          "description": "Error message returned by Arcanna."
+                        }
+                      }
+                    },
+                    "InferenceResultResponse": {
+                      "type": "object",
+                      "properties": {
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "storage_tag": {
+                          "type": "string",
+                          "description": "Storage tag returned by Arcanna."
+                        },
+                        "ingest_timestamp": {
+                          "type": "string",
+                          "description": "Ingest timestamp returned by Arcanna."
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Status returned by Arcanna."
+                        },
+                        "result": {
+                          "type": "string",
+                          "description": "Result returned by Arcanna."
+                        },
+                        "result_label": {
+                          "type": "string",
+                          "description": "Result label returned by Arcanna."
+                        },
+                        "error_message": {
+                          "type": "string",
+                          "description": "Error message returned by Arcanna."
+                        },
+                        "bucket_state": {
+                          "type": "string",
+                          "description": "Bucket state returned by Arcanna."
+                        },
+                        "knowledge_base_state": {
+                          "type": "string",
+                          "description": "Knowledge base state returned by Arcanna."
+                        },
+                        "outlier": {
+                          "type": "boolean",
+                          "description": "Outlier indicator returned by Arcanna."
+                        },
+                        "confidence_score": {
+                          "type": "number",
+                          "description": "Confidence score returned by Arcanna."
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "ExportEvent": {
+                      "type": "object",
+                      "properties": {
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "ingest_timestamp": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "arcanna_event": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "x-ms-summary": "Full Event",
+                          "description": "Full Arcanna event object. The object can contain dynamic fields and enrichments added during processing."
+                        },
+                        "storage_tag": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "EventFeedbackResponse": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "description": "Status returned by Arcanna."
+                        }
+                      }
+                    },
+                    "Job": {
+                      "type": "object",
+                      "properties": {
+                        "job_id": {
+                          "type": "integer",
+                          "x-ms-summary": "Pipeline ID"
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string",
+                          "x-ms-summary": "Pipeline Name"
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Status returned by Arcanna."
+                        },
+                        "retrain_state": {
+                          "type": "string",
+                          "description": "Retraining state returned by Arcanna."
+                        },
+                        "retrain_msg": {
+                          "type": "string",
+                          "description": "Retraining message returned by Arcanna."
+                        },
+                        "labels": {
+                          "type": "array"
+                        },
+                        "features": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "processed_documents_count": {
+                          "type": "integer"
+                        },
+                        "feedback_documents_count": {
+                          "type": "integer"
+                        },
+                        "last_processed_timestamp": {
+                          "type": "string"
+                        },
+                        "last_feedback_timestamp": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "JobActionResponse": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "description": "Status returned by Arcanna."
+                        },
+                        "error_message": {
+                          "type": "string",
+                          "description": "Error message returned by Arcanna."
+                        }
+                      }
+                    },
+                    "StatusResponseModel": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "boolean",
+                          "x-ms-summary": "Integration Configured",
+                          "description": "Indicates whether the configured Arcanna API key is assigned to an Arcanna integration."
+                        }
+                      }
+                    },
+                    "HealthcheckResponseModel": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "x-ms-summary": "Connectivity Status",
+                          "description": "Connectivity status returned by Arcanna."
+                        }
+                      }
+                    },
+                    "ValidationError": {
+                      "type": "object",
+                      "properties": {
+                        "loc": {
+                          "type": "array"
+                        },
+                        "msg": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "loc",
+                        "msg",
+                        "type"
+                      ]
+                    },
+                    "HTTPValidationError": {
+                      "type": "object",
+                      "properties": {
+                        "detail": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/ValidationError"
+                          }
+                        }
+                      }
+                    },
+                    "JobByNameRequest": {
+                      "type": "object",
+                      "required": [
+                        "job_name"
+                      ],
+                      "properties": {
+                        "job_name": {
+                          "type": "string",
+                          "x-ms-summary": "Pipeline Name",
+                          "description": "Name of the Arcanna pipeline to retrieve.",
+                          "x-ms-visibility": "important"
+                        }
+                      }
+                    }
+                  },
+                  "x-arcanna-deployment": {
+                    "baseUrlParameter": "Arcanna Base URL",
+                    "note": "At deployment, split the configured Arcanna Base URL into scheme and host[:port]. Replace schemes[0] and host in this Swagger definition. The Base URL must not include /api/v1.",
+                    "runtimePipelineSelection": "Pipeline IDs are selected at runtime per action and may come from previous connector actions such as Get Job by Name. They are not deployment-level parameters."
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+              "apiVersion": "2022-01-01-preview",
+              "name": "[[concat(variables('workspace-name'),'/Microsoft.SecurityInsights/',concat('LogicAppsCustomConnector-', last(split(variables('playbookId1'),'/'))))]",
+              "properties": {
+                "parentId": "[[variables('playbookId1')]",
+                "contentId": "[variables('_playbookContentId1')]",
+                "kind": "LogicAppsCustomConnector",
+                "version": "[variables('playbookVersion1')]",
+                "source": {
+                  "kind": "Solution",
+                  "name": "Arcanna",
+                  "sourceId": "[variables('_solutionId')]"
+                },
+                "author": {
+                  "name": "Arcanna.ai",
+                  "email": "[variables('_email')]"
+                },
+                "support": {
+                  "name": "Arcanna.ai",
+                  "email": "support@arcanna.ai",
+                  "tier": "Partner",
+                  "link": "https://arcanna.ai/contact"
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "10346756398375129022"
+            },
+            "lastUpdateTime": "2026-10-14T06:04:21.608Z",
+            "releaseNotes": {
+              "version": "1.0",
+              "title": "[variables('blanks')]",
+              "notes": [
+                "Initial version"
+              ]
+            }
+          }
+        },
+        "packageKind": "Solution",
+        "packageVersion": "[variables('_solutionVersion')]",
+        "packageName": "[variables('_solutionName')]",
+        "packageId": "[variables('_solutionId')]",
+        "contentSchemaVersion": "3.0.0",
+        "contentId": "[variables('_playbookContentId1')]",
+        "contentKind": "LogicAppsCustomConnector",
+        "displayName": "ArcannaConnector",
+        "contentProductId": "[variables('_playbookcontentProductId1')]",
+        "id": "[variables('_playbookcontentProductId1')]",
+        "version": "[variables('playbookVersion1')]"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+      "apiVersion": "2023-04-01-preview",
+      "name": "[variables('playbookTemplateSpecName2')]",
+      "location": "[parameters('workspace-location')]",
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
+      ],
+      "properties": {
+        "description": "Arcanna-Sentinel-Triage Playbook with template version 3.0.1",
+        "mainTemplate": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "[variables('playbookVersion2')]",
+          "parameters": {
+            "PlaybookName": {
+              "type": "string",
+              "defaultValue": "Arcanna-Sentinel-Triage",
+              "metadata": {
+                "description": "Logic App playbook name."
+              }
+            },
+            "ArcannaCustomConnectorName": {
+              "type": "string",
+              "defaultValue": "arcanna",
+              "metadata": {
+                "description": "Existing Arcanna custom connector name."
+              }
+            },
+            "ArcannaApiKey": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Arcanna API key assigned to an Arcanna integration."
+              }
+            },
+            "ArcannaPipelineId": {
+              "type": "int",
+              "metadata": {
+                "description": "Arcanna pipeline ID used by this playbook. This is configured per playbook and is not a global Arcanna connector setting."
+              }
+            },
+            "SentinelWorkspaceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Microsoft Sentinel Log Analytics workspace name. This is the only Sentinel-specific deployment value that cannot be reliably inferred by ARM when creating the playbook template."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployed resources."
+              }
+            }
+          },
+          "variables": {
+            "ArcannaConnectionName": "[[format('arcanna-{0}', parameters('PlaybookName'))]",
+            "MicrosoftSentinelConnectionName": "[[format('azuresentinel-{0}', parameters('PlaybookName'))]",
+            "sentinelManagedApiId": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', resourceGroup().location, 'azuresentinel')]",
+            "connection-1": "[[resourceId('Microsoft.Web/customApis', parameters('ArcannaCustomConnectorName'))]",
+            "_connection-1": "[[variables('connection-1')]",
+            "connection-2": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', variables('workspace-location-inline'), 'azuresentinel')]",
+            "_connection-2": "[[variables('connection-2')]",
+            "workspace-location-inline": "[concat('[resourceGroup().locatio', 'n]')]",
+            "workspace-name": "[parameters('workspace')]",
+            "workspaceResourceId": "[[resourceId('microsoft.OperationalInsights/Workspaces', variables('workspace-name'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/connections",
+              "apiVersion": "2016-06-01",
+              "name": "[[variables('ArcannaConnectionName')]",
+              "location": "[[parameters('location')]",
+              "properties": {
+                "displayName": "Arcanna",
+                "api": {
+                  "id": "[[variables('_connection-1')]"
+                },
+                "parameterValues": {
+                  "api_key": "[[parameters('ArcannaApiKey')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Web/connections",
+              "apiVersion": "2016-06-01",
+              "name": "[[variables('MicrosoftSentinelConnectionName')]",
+              "location": "[[parameters('location')]",
+              "properties": {
+                "displayName": "Microsoft Sentinel - Arcanna",
+                "parameterValueType": "Alternative",
+                "api": {
+                  "id": "[[variables('_connection-2')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Logic/workflows",
+              "apiVersion": "2019-05-01",
+              "name": "[[parameters('PlaybookName')]",
+              "location": "[[parameters('location')]",
+              "tags": {
+                "LogicAppsCategory": "security",
+                "hidden-SentinelTemplateName": "[[parameters('PlaybookName')]",
+                "hidden-SentinelTemplateVersion": "1.0",
+                "hidden-SentinelWorkspaceId": "[[variables('workspaceResourceId')]"
+              },
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "state": "Enabled",
+                "definition": {
+                  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                  "contentVersion": "1.0.0.0",
+                  "triggers": {
+                    "Microsoft_Sentinel_incident": {
+                      "type": "ApiConnectionWebhook",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                          }
+                        },
+                        "body": {
+                          "callback_url": "@listCallbackUrl()"
+                        },
+                        "path": "/incident-creation"
+                      }
+                    }
+                  },
+                  "actions": {
+                    "Send_Event": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['arcanna']['connectionId']"
+                          }
+                        },
+                        "method": "post",
+                        "body": {
+                          "job_id": "@parameters('ArcannaPipelineId')",
+                          "raw_body": {
+                            "alerts": "@triggerBody()?['object']?['properties']?['Alerts']",
+                            "incident": "@triggerBody()?['object']?['properties']"
+                          }
+                        },
+                        "path": "/events/@{encodeURIComponent(string(triggerBody()?['object']?['properties']?['incidentNumber']))}"
+                      }
+                    },
+                    "Initialize_Decision_Status": {
+                      "type": "InitializeVariable",
+                      "inputs": {
+                        "variables": [
+                          {
+                            "name": "DecisionStatus",
+                            "type": "string",
+                            "value": "pending_inference"
+                          }
+                        ]
+                      },
+                      "runAfter": {
+                        "Send_Event": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Poll_for_Decision": {
+                      "type": "Until",
+                      "expression": "@not(equals(variables('DecisionStatus'), 'pending_inference'))",
+                      "limit": {
+                        "count": 30,
+                        "timeout": "PT6M"
+                      },
+                      "actions": {
+                        "Delay_10_seconds": {
+                          "type": "Wait",
+                          "inputs": {
+                            "interval": {
+                              "count": 10,
+                              "unit": "Second"
+                            }
+                          }
+                        },
+                        "Get_Decision": {
+                          "type": "ApiConnection",
+                          "inputs": {
+                            "host": {
+                              "connection": {
+                                "name": "@parameters('$connections')['arcanna']['connectionId']"
+                              }
+                            },
+                            "method": "get",
+                            "path": "/events/@{encodeURIComponent(string(body('Send_Event')?['job_id']))}/@{encodeURIComponent(string(body('Send_Event')?['event_id']))}"
+                          },
+                          "runAfter": {
+                            "Delay_10_seconds": [
+                              "Succeeded"
+                            ]
+                          }
+                        },
+                        "Set_Decision_Status": {
+                          "type": "SetVariable",
+                          "inputs": {
+                            "name": "DecisionStatus",
+                            "value": "@coalesce(body('Get_Decision')?['status'], 'pending_inference')"
+                          },
+                          "runAfter": {
+                            "Get_Decision": [
+                              "Succeeded"
+                            ]
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Initialize_Decision_Status": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Handle_Arcanna_Result": {
+                      "type": "Switch",
+                      "expression": "@body('Get_Decision')?['status']",
+                      "default": {
+                        "actions": {
+                          "Add_Unexpected_Status_Comment": {
+                            "type": "ApiConnection",
+                            "inputs": {
+                              "host": {
+                                "connection": {
+                                  "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                }
+                              },
+                              "method": "post",
+                              "body": {
+                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                "message": "<p><b>Arcanna returned an unexpected status.</b></p><p>Status: @{body('Get_Decision')?['status']}</p>"
+                              },
+                              "path": "/Incidents/Comment"
+                            }
+                          }
+                        }
+                      },
+                      "cases": {
+                        "Status_OK": {
+                          "case": "OK",
+                          "actions": {
+                            "Get_Full_Event": {
+                              "type": "ApiConnection",
+                              "inputs": {
+                                "host": {
+                                  "connection": {
+                                    "name": "@parameters('$connections')['arcanna']['connectionId']"
+                                  }
+                                },
+                                "method": "get",
+                                "path": "/events/@{encodeURIComponent(string(body('Send_Event')?['job_id']))}/@{encodeURIComponent(string(body('Send_Event')?['event_id']))}/export"
+                              }
+                            },
+                            "Add_Arcanna_Decision_Comment": {
+                              "type": "ApiConnection",
+                              "inputs": {
+                                "host": {
+                                  "connection": {
+                                    "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                  }
+                                },
+                                "method": "post",
+                                "body": {
+                                  "incidentArmId": "@triggerBody()?['object']?['id']",
+                                  "message": "<p class=\"editor-paragraph\"><b><strong class=\"editor-text-bold\">Arcanna Inference Results</strong></b></p><br><ul class=\"editor-list-ul\"><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Event ID: </strong></b>@{body('Get_Decision')?['event_id']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Ingest Timestamp: </strong></b>@{body('Get_Decision')?['ingest_timestamp']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Status: </strong></b>@{body('Get_Decision')?['status']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Result: </strong></b>@{body('Get_Decision')?['result']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Result Label: </strong></b>@{body('Get_Decision')?['result_label']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Bucket State: </strong></b>@{body('Get_Decision')?['bucket_state']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Knowledge Base State: </strong></b>@{body('Get_Decision')?['knowledge_base_state']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Outlier: </strong></b>@{body('Get_Decision')?['outlier']}</li><li class=\"editor-listitem\"><b><strong class=\"editor-text-bold\">Confidence Score: </strong></b>@{body('Get_Decision')?['confidence_score']}%</li></ul>"
+                                },
+                                "path": "/Incidents/Comment"
+                              },
+                              "runAfter": {
+                                "Get_Full_Event": [
+                                  "Succeeded"
+                                ]
+                              }
+                            },
+                            "Branch_on_Decision": {
+                              "type": "Switch",
+                              "expression": "@body('Get_Decision')?['result_label']",
+                              "default": {
+                                "actions": {
+                                  "Update_incident_Default": {
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                      "host": {
+                                        "connection": {
+                                          "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                        }
+                                      },
+                                      "method": "put",
+                                      "body": {
+                                        "incidentArmId": "@triggerBody()?['object']?['id']",
+                                        "tagsToAdd": {
+                                          "TagsToAdd": [
+                                            {
+                                              "Tag": "@body('Get_Decision')?['result_label']"
+                                            },
+                                            {
+                                              "Tag": "Outlier: @{body('Get_Decision')?['outlier']}"
+                                            },
+                                            {
+                                              "Tag": "CFScore@{body('Get_Decision')?['confidence_score']}"
+                                            }
+                                          ]
+                                        },
+                                        "severity": "Informational",
+                                        "status": "Active"
+                                      },
+                                      "path": "/Incidents"
+                                    }
+                                  }
+                                }
+                              },
+                              "cases": {
+                                "Drop": {
+                                  "case": "Drop",
+                                  "actions": {
+                                    "Update_incident_Drop": {
+                                      "type": "ApiConnection",
+                                      "inputs": {
+                                        "host": {
+                                          "connection": {
+                                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                          }
+                                        },
+                                        "method": "put",
+                                        "body": {
+                                          "incidentArmId": "@triggerBody()?['object']?['id']",
+                                          "tagsToAdd": {
+                                            "TagsToAdd": [
+                                              {
+                                                "Tag": "@body('Get_Decision')?['result_label']"
+                                              },
+                                              {
+                                                "Tag": "Outlier: @{body('Get_Decision')?['outlier']}"
+                                              },
+                                              {
+                                                "Tag": "CFScore@{body('Get_Decision')?['confidence_score']}"
+                                              }
+                                            ]
+                                          },
+                                          "severity": "Low",
+                                          "status": "Active"
+                                        },
+                                        "path": "/Incidents"
+                                      }
+                                    }
+                                  }
+                                },
+                                "Escalate": {
+                                  "case": "Escalate",
+                                  "actions": {
+                                    "Update_incident_Escalate": {
+                                      "type": "ApiConnection",
+                                      "inputs": {
+                                        "host": {
+                                          "connection": {
+                                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                          }
+                                        },
+                                        "method": "put",
+                                        "body": {
+                                          "incidentArmId": "@triggerBody()?['object']?['id']",
+                                          "tagsToAdd": {
+                                            "TagsToAdd": [
+                                              {
+                                                "Tag": "@body('Get_Decision')?['result_label']"
+                                              },
+                                              {
+                                                "Tag": "Outlier: @{body('Get_Decision')?['outlier']}"
+                                              },
+                                              {
+                                                "Tag": "CFScore@{body('Get_Decision')?['confidence_score']}"
+                                              }
+                                            ]
+                                          },
+                                          "severity": "High",
+                                          "status": "Active"
+                                        },
+                                        "path": "/Incidents"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "runAfter": {
+                                "Add_Arcanna_Decision_Comment": [
+                                  "Succeeded"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "Status_ERROR": {
+                          "case": "ERROR",
+                          "actions": {
+                            "Add_Arcanna_Error_Comment": {
+                              "type": "ApiConnection",
+                              "inputs": {
+                                "host": {
+                                  "connection": {
+                                    "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                  }
+                                },
+                                "method": "post",
+                                "body": {
+                                  "incidentArmId": "@triggerBody()?['object']?['id']",
+                                  "message": "<p class=\"editor-paragraph\"><b><strong class=\"editor-text-bold\">Arcanna Processing Error</strong></b></p><ul class=\"editor-list-ul\"><li class=\"editor-listitem\"><b>Event ID:</b> @{body('Get_Decision')?['event_id']}</li><li class=\"editor-listitem\"><b>Status:</b> @{body('Get_Decision')?['status']}</li><li class=\"editor-listitem\"><b>Result:</b> @{body('Get_Decision')?['result_label']}</li><li class=\"editor-listitem\"><b>Error Message:</b> @{body('Get_Decision')?['error_message']}</li></ul><p>Please check with your Arcanna administrator.</p>"
+                                },
+                                "path": "/Incidents/Comment"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "runAfter": {
+                        "Poll_for_Decision": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  },
+                  "parameters": {
+                    "$connections": {
+                      "type": "Object"
+                    },
+                    "ArcannaPipelineId": {
+                      "type": "Int",
+                      "defaultValue": 0
+                    }
+                  }
+                },
+                "parameters": {
+                  "ArcannaPipelineId": {
+                    "value": "[[parameters('ArcannaPipelineId')]"
+                  },
+                  "$connections": {
+                    "value": {
+                      "azuresentinel": {
+                        "id": "[[variables('sentinelManagedApiId')]",
+                        "connectionId": "[[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+                        "connectionName": "[[variables('MicrosoftSentinelConnectionName')]",
+                        "connectionProperties": {
+                          "authentication": {
+                            "type": "ManagedServiceIdentity"
+                          }
+                        }
+                      },
+                      "arcanna": {
+                        "id": "[[resourceId('Microsoft.Web/customApis', parameters('ArcannaCustomConnectorName'))]",
+                        "connectionId": "[[resourceId('Microsoft.Web/connections', variables('ArcannaConnectionName'))]",
+                        "connectionName": "[[variables('ArcannaConnectionName')]"
+                      }
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[[resourceId('Microsoft.Web/connections', variables('ArcannaConnectionName'))]",
+                "[[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[[format('{0}-sentinel-responder', parameters('PlaybookName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "playbookPrincipalId": {
+                    "value": "[[reference(resourceId('Microsoft.Logic/workflows', parameters('PlaybookName')), '2019-05-01', 'full').identity.principalId]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.48.1.52935",
+                      "templateHash": "18443889088608625801"
+                    }
+                  },
+                  "parameters": {
+                    "playbookPrincipalId": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "responderRoleId": "[[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3e150937-b8fe-4cfb-8069-0eaf05ecd056')]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[[guid(resourceGroup().id, parameters('playbookPrincipalId'), variables('responderRoleId'))]",
+                      "properties": {
+                        "roleDefinitionId": "[[variables('responderRoleId')]",
+                        "principalId": "[[parameters('playbookPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[[resourceId('Microsoft.Logic/workflows', parameters('PlaybookName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[[format('{0}-automation-rule', parameters('PlaybookName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "SentinelWorkspaceName": {
+                    "value": "[[parameters('SentinelWorkspaceName')]"
+                  },
+                  "playbookResourceId": {
+                    "value": "[[resourceId('Microsoft.Logic/workflows', parameters('PlaybookName'))]"
+                  },
+                  "tenantId": {
+                    "value": "[[tenant().tenantId]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.48.1.52935",
+                      "templateHash": "13813016701997433220"
+                    }
+                  },
+                  "parameters": {
+                    "SentinelWorkspaceName": {
+                      "type": "string"
+                    },
+                    "playbookResourceId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string",
+                      "defaultValue": "[[tenant().tenantId]"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.SecurityInsights/automationRules",
+                      "apiVersion": "2025-09-01",
+                      "scope": "[[resourceId('Microsoft.OperationalInsights/workspaces', parameters('SentinelWorkspaceName'))]",
+                      "name": "[[guid(resourceId('Microsoft.OperationalInsights/workspaces', parameters('SentinelWorkspaceName')), 'Arcanna - Triage new incidents')]",
+                      "properties": {
+                        "displayName": "Arcanna - Triage new incidents",
+                        "order": 1,
+                        "triggeringLogic": {
+                          "isEnabled": true,
+                          "triggersOn": "Incidents",
+                          "triggersWhen": "Created",
+                          "conditions": "[variables('TemplateEmptyArray')]"
+                        },
+                        "actions": [
+                          {
+                            "order": 1,
+                            "actionType": "RunPlaybook",
+                            "actionConfiguration": {
+                              "logicAppResourceId": "[[parameters('playbookResourceId')]",
+                              "tenantId": "[[parameters('tenantId')]"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[[resourceId('Microsoft.Logic/workflows', parameters('PlaybookName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+              "apiVersion": "2022-01-01-preview",
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('Playbook-', last(split(variables('playbookId2'),'/'))))]",
+              "properties": {
+                "parentId": "[variables('playbookId2')]",
+                "contentId": "[variables('_playbookContentId2')]",
+                "kind": "Playbook",
+                "version": "[variables('playbookVersion2')]",
+                "source": {
+                  "kind": "Solution",
+                  "name": "Arcanna",
+                  "sourceId": "[variables('_solutionId')]"
+                },
+                "author": {
+                  "name": "Arcanna.ai",
+                  "email": "[variables('_email')]"
+                },
+                "support": {
+                  "name": "Arcanna.ai",
+                  "email": "support@arcanna.ai",
+                  "tier": "Partner",
+                  "link": "https://arcanna.ai/contact"
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "1576927317556859106"
+            },
+            "title": "Arcanna - Triage Microsoft Sentinel incidents",
+            "description": "Submits newly created Microsoft Sentinel incidents to Arcanna, polls for the Arcanna decision, and writes the result back to the incident.",
+            "prerequisites": [
+              "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json",
+              "Have an Arcanna API key assigned to an Arcanna integration.",
+              "Know the Arcanna Pipeline ID that this playbook should use."
+            ],
+            "postDeployment": [
+              "Authorize the Arcanna API connection if Azure requests authorization.",
+              "Grant Microsoft Sentinel permission to run playbooks in this playbook resource group from Playbook permissions.",
+              "Verify the Arcanna - Triage new incidents automation rule is enabled."
+            ],
+            "lastUpdateTime": "2026-10-14T00:00:00Z",
+            "entities": [
+              "Incident"
+            ],
+            "tags": [
+              "Enrichment",
+              "Response"
+            ],
+            "releaseNotes": [
+              {
+                "version": "1.0",
+                "title": "Initial release",
+                "notes": [
+                  "Initial Microsoft Sentinel Content Hub playbook template release."
+                ]
+              }
+            ],
+            "categories": {
+              "domains": [
+                "Security - Automation (SOAR)"
+              ]
+            }
+          }
+        },
+        "packageKind": "Solution",
+        "packageVersion": "[variables('_solutionVersion')]",
+        "packageName": "[variables('_solutionName')]",
+        "packageId": "[variables('_solutionId')]",
+        "contentSchemaVersion": "3.0.0",
+        "contentId": "[variables('_playbookContentId2')]",
+        "contentKind": "Playbook",
+        "displayName": "Arcanna-Sentinel-Triage",
+        "contentProductId": "[variables('_playbookcontentProductId2')]",
+        "id": "[variables('_playbookcontentProductId2')]",
+        "version": "[variables('playbookVersion2')]"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+      "apiVersion": "2023-04-01-preview",
+      "name": "[variables('playbookTemplateSpecName3')]",
+      "location": "[parameters('workspace-location')]",
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
+      ],
+      "properties": {
+        "description": "Arcanna-Sentinel-Feedback Playbook with template version 3.0.1",
+        "mainTemplate": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "[variables('playbookVersion3')]",
+          "parameters": {
+            "PlaybookName": {
+              "type": "string",
+              "defaultValue": "Arcanna-Sentinel-Feedback",
+              "metadata": {
+                "description": "Logic App playbook name."
+              }
+            },
+            "ArcannaCustomConnectorName": {
+              "type": "string",
+              "defaultValue": "arcanna",
+              "metadata": {
+                "description": "Existing Arcanna custom connector name."
+              }
+            },
+            "ArcannaApiKey": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Arcanna API key assigned to an Arcanna integration."
+              }
+            },
+            "ArcannaPipelineId": {
+              "type": "int",
+              "metadata": {
+                "description": "Arcanna pipeline ID used by this playbook. This is configured per playbook and is not a global Arcanna connector setting."
+              }
+            },
+            "SentinelWorkspaceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Microsoft Sentinel Log Analytics workspace name. This is the only Sentinel-specific deployment value that cannot be reliably inferred by ARM when creating the playbook template."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployed resources."
+              }
+            }
+          },
+          "variables": {
+            "ArcannaConnectionName": "[[format('arcanna-{0}', parameters('PlaybookName'))]",
+            "MicrosoftSentinelConnectionName": "[[format('azuresentinel-{0}', parameters('PlaybookName'))]",
+            "sentinelManagedApiId": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', resourceGroup().location, 'azuresentinel')]",
+            "connection-1": "[[resourceId('Microsoft.Web/customApis', parameters('ArcannaCustomConnectorName'))]",
+            "_connection-1": "[[variables('connection-1')]",
+            "connection-2": "[[subscriptionResourceId('Microsoft.Web/locations/managedApis', variables('workspace-location-inline'), 'azuresentinel')]",
+            "_connection-2": "[[variables('connection-2')]",
+            "workspace-location-inline": "[concat('[resourceGroup().locatio', 'n]')]",
+            "workspace-name": "[parameters('workspace')]",
+            "workspaceResourceId": "[[resourceId('microsoft.OperationalInsights/Workspaces', variables('workspace-name'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/connections",
+              "apiVersion": "2016-06-01",
+              "name": "[[variables('ArcannaConnectionName')]",
+              "location": "[[parameters('location')]",
+              "properties": {
+                "displayName": "Arcanna",
+                "api": {
+                  "id": "[[variables('_connection-1')]"
+                },
+                "parameterValues": {
+                  "api_key": "[[parameters('ArcannaApiKey')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Web/connections",
+              "apiVersion": "2016-06-01",
+              "name": "[[variables('MicrosoftSentinelConnectionName')]",
+              "location": "[[parameters('location')]",
+              "properties": {
+                "displayName": "Microsoft Sentinel - Arcanna",
+                "parameterValueType": "Alternative",
+                "api": {
+                  "id": "[[variables('_connection-2')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Logic/workflows",
+              "apiVersion": "2019-05-01",
+              "name": "[[parameters('PlaybookName')]",
+              "location": "[[parameters('location')]",
+              "tags": {
+                "LogicAppsCategory": "security",
+                "hidden-SentinelTemplateName": "[[parameters('PlaybookName')]",
+                "hidden-SentinelTemplateVersion": "1.0",
+                "hidden-SentinelWorkspaceId": "[[variables('workspaceResourceId')]"
+              },
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "state": "Enabled",
+                "definition": {
+                  "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                  "contentVersion": "1.0.0.0",
+                  "triggers": {
+                    "Microsoft_Sentinel_incident": {
+                      "type": "ApiConnectionWebhook",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                          }
+                        },
+                        "body": {
+                          "callback_url": "@listCallbackUrl()"
+                        },
+                        "path": "/incident-creation"
+                      }
+                    }
+                  },
+                  "actions": {
+                    "Determine_Feedback": {
+                      "type": "Compose",
+                      "inputs": "@if(or(equals(triggerBody()?['object']?['properties']?['classification'],'FalsePositive'),equals(triggerBody()?['object']?['properties']?['classification'],'BenignPositive')),'Drop','Escalate')"
+                    },
+                    "Send_Feedback": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['arcanna']['connectionId']"
+                          }
+                        },
+                        "method": "put",
+                        "body": {
+                          "feedback": "@outputs('Determine_Feedback')",
+                          "cortex_user": "@coalesce(triggerBody()?['object']?['properties']?['owner']?['assignedTo'], 'Microsoft Sentinel')"
+                        },
+                        "path": "/events/@{encodeURIComponent(string(parameters('ArcannaPipelineId')))}/@{encodeURIComponent(string(triggerBody()?['object']?['properties']?['incidentNumber']))}/feedback"
+                      },
+                      "runAfter": {
+                        "Determine_Feedback": [
+                          "Succeeded"
+                        ]
+                      }
+                    },
+                    "Add_Feedback_Comment": {
+                      "type": "ApiConnection",
+                      "inputs": {
+                        "host": {
+                          "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                          }
+                        },
+                        "method": "post",
+                        "body": {
+                          "incidentArmId": "@triggerBody()?['object']?['id']",
+                          "message": "<p><b>Arcanna Feedback Sent</b></p><ul><li><b>Feedback:</b> @{outputs('Determine_Feedback')}</li><li><b>User:</b> @{coalesce(triggerBody()?['object']?['properties']?['owner']?['assignedTo'], 'Microsoft Sentinel')}</li><li><b>Classification:</b> @{triggerBody()?['object']?['properties']?['classification']}</li><li><b>Classification Comment:</b> @{triggerBody()?['object']?['properties']?['classificationComment']}</li></ul>"
+                        },
+                        "path": "/Incidents/Comment"
+                      },
+                      "runAfter": {
+                        "Send_Feedback": [
+                          "Succeeded"
+                        ]
+                      }
+                    }
+                  },
+                  "parameters": {
+                    "ArcannaPipelineId": {
+                      "type": "Int",
+                      "defaultValue": 0
+                    },
+                    "$connections": {
+                      "type": "Object"
+                    }
+                  }
+                },
+                "parameters": {
+                  "ArcannaPipelineId": {
+                    "value": "[[parameters('ArcannaPipelineId')]"
+                  },
+                  "$connections": {
+                    "value": {
+                      "azuresentinel": {
+                        "id": "[[variables('sentinelManagedApiId')]",
+                        "connectionId": "[[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]",
+                        "connectionName": "[[variables('MicrosoftSentinelConnectionName')]",
+                        "connectionProperties": {
+                          "authentication": {
+                            "type": "ManagedServiceIdentity"
+                          }
+                        }
+                      },
+                      "arcanna": {
+                        "id": "[[resourceId('Microsoft.Web/customApis', parameters('ArcannaCustomConnectorName'))]",
+                        "connectionId": "[[resourceId('Microsoft.Web/connections', variables('ArcannaConnectionName'))]",
+                        "connectionName": "[[variables('ArcannaConnectionName')]"
+                      }
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[[resourceId('Microsoft.Web/connections', variables('ArcannaConnectionName'))]",
+                "[[resourceId('Microsoft.Web/connections', variables('MicrosoftSentinelConnectionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[[format('{0}-sentinel-responder', parameters('PlaybookName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "playbookPrincipalId": {
+                    "value": "[[reference(resourceId('Microsoft.Logic/workflows', parameters('PlaybookName')), '2019-05-01', 'full').identity.principalId]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.48.1.52935",
+                      "templateHash": "18443889088608625801"
+                    }
+                  },
+                  "parameters": {
+                    "playbookPrincipalId": {
+                      "type": "string"
+                    }
+                  },
+                  "variables": {
+                    "responderRoleId": "[[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3e150937-b8fe-4cfb-8069-0eaf05ecd056')]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "name": "[[guid(resourceGroup().id, parameters('playbookPrincipalId'), variables('responderRoleId'))]",
+                      "properties": {
+                        "roleDefinitionId": "[[variables('responderRoleId')]",
+                        "principalId": "[[parameters('playbookPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[[resourceId('Microsoft.Logic/workflows', parameters('PlaybookName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[[format('{0}-automation-rule', parameters('PlaybookName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "SentinelWorkspaceName": {
+                    "value": "[[parameters('SentinelWorkspaceName')]"
+                  },
+                  "playbookResourceId": {
+                    "value": "[[resourceId('Microsoft.Logic/workflows', parameters('PlaybookName'))]"
+                  },
+                  "tenantId": {
+                    "value": "[[tenant().tenantId]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.48.1.52935",
+                      "templateHash": "13760920721918034534"
+                    }
+                  },
+                  "parameters": {
+                    "SentinelWorkspaceName": {
+                      "type": "string"
+                    },
+                    "playbookResourceId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string",
+                      "defaultValue": "[[tenant().tenantId]"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.SecurityInsights/automationRules",
+                      "apiVersion": "2025-09-01",
+                      "scope": "[[resourceId('Microsoft.OperationalInsights/workspaces', parameters('SentinelWorkspaceName'))]",
+                      "name": "[[guid(resourceId('Microsoft.OperationalInsights/workspaces', parameters('SentinelWorkspaceName')), 'Arcanna - Send feedback on closed incidents')]",
+                      "properties": {
+                        "displayName": "Arcanna - Send feedback on closed incidents",
+                        "order": 2,
+                        "triggeringLogic": {
+                          "isEnabled": true,
+                          "triggersOn": "Incidents",
+                          "triggersWhen": "Updated",
+                          "conditions": [
+                            {
+                              "conditionType": "PropertyChanged",
+                              "conditionProperties": {
+                                "propertyName": "IncidentStatus",
+                                "changeType": "ChangedTo",
+                                "operator": "Equals",
+                                "propertyValues": [
+                                  "Closed"
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        "actions": [
+                          {
+                            "order": 1,
+                            "actionType": "RunPlaybook",
+                            "actionConfiguration": {
+                              "logicAppResourceId": "[[parameters('playbookResourceId')]",
+                              "tenantId": "[[parameters('tenantId')]"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[[resourceId('Microsoft.Logic/workflows', parameters('PlaybookName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+              "apiVersion": "2022-01-01-preview",
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('Playbook-', last(split(variables('playbookId3'),'/'))))]",
+              "properties": {
+                "parentId": "[variables('playbookId3')]",
+                "contentId": "[variables('_playbookContentId3')]",
+                "kind": "Playbook",
+                "version": "[variables('playbookVersion3')]",
+                "source": {
+                  "kind": "Solution",
+                  "name": "Arcanna",
+                  "sourceId": "[variables('_solutionId')]"
+                },
+                "author": {
+                  "name": "Arcanna.ai",
+                  "email": "[variables('_email')]"
+                },
+                "support": {
+                  "name": "Arcanna.ai",
+                  "email": "support@arcanna.ai",
+                  "tier": "Partner",
+                  "link": "https://arcanna.ai/contact"
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "4765577511010701528"
+            },
+            "title": "Arcanna - Send analyst feedback",
+            "description": "Sends Microsoft Sentinel incident closure feedback to Arcanna so analyst outcomes can be returned to the configured Arcanna pipeline.",
+            "prerequisites": [
+              "Deploy the Arcanna Custom Azure Logic Apps Connector first: https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsiscale%2Farcanna-microsoft-sentinel%2Fmain%2FArcannaConnector%2Fazuredeploy.json",
+              "Have an Arcanna API key assigned to an Arcanna integration.",
+              "Know the Arcanna Pipeline ID that this playbook should use."
+            ],
+            "postDeployment": [
+              "Authorize the Arcanna API connection if Azure requests authorization.",
+              "Grant Microsoft Sentinel permission to run playbooks in this playbook resource group from Playbook permissions.",
+              "Verify the Arcanna - Send feedback on closed incidents automation rule is enabled."
+            ],
+            "lastUpdateTime": "2026-10-14T00:00:00Z",
+            "tags": [
+              "Sync",
+              "Response"
+            ],
+            "releaseNotes": [
+              {
+                "version": "1.0",
+                "title": "Initial release",
+                "notes": [
+                  "Initial Microsoft Sentinel Content Hub playbook template release."
+                ]
+              }
+            ],
+            "categories": {
+              "domains": [
+                "Security - Automation (SOAR)"
+              ]
+            }
+          }
+        },
+        "packageKind": "Solution",
+        "packageVersion": "[variables('_solutionVersion')]",
+        "packageName": "[variables('_solutionName')]",
+        "packageId": "[variables('_solutionId')]",
+        "contentSchemaVersion": "3.0.0",
+        "contentId": "[variables('_playbookContentId3')]",
+        "contentKind": "Playbook",
+        "displayName": "Arcanna-Sentinel-Feedback",
+        "contentProductId": "[variables('_playbookcontentProductId3')]",
+        "id": "[variables('_playbookcontentProductId3')]",
+        "version": "[variables('playbookVersion3')]"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentPackages",
+      "apiVersion": "2023-04-01-preview",
+      "location": "[parameters('workspace-location')]",
+      "properties": {
+        "version": "3.0.1",
+        "kind": "Solution",
+        "contentSchemaVersion": "3.0.0",
+        "displayName": "Arcanna",
+        "publisherDisplayName": "Arcanna.ai",
+        "descriptionHtml": "<p><strong>Note:</strong> Please refer to the following before installing the solution:</p>\n<p>• Review the solution <a href=\"https://github.com/Azure/Azure-Sentinel/tree/master/Solutions/Arcanna/ReleaseNotes.md\">Release Notes</a></p>\n<p>• There may be <a href=\"https://aka.ms/sentinelsolutionsknownissues\">known issues</a> pertaining to this Solution, please refer to them before installing.</p>\n<p>The Arcanna solution for Microsoft Sentinel provides AI-assisted incident triage and analyst feedback workflows. It includes an Arcanna Custom Azure Logic Apps Connector plus playbook templates for submitting Sentinel incidents to Arcanna, polling for decisions, writing results back to incidents, and returning analyst closure feedback to Arcanna.</p>\n<p><strong>Custom Azure Logic Apps Connectors:</strong> 1, <strong>Playbooks:</strong> 2</p>\n<p><a href=\"https://aka.ms/azuresentinel\">Learn more about Microsoft Sentinel</a> | <a href=\"https://aka.ms/azuresentinelsolutionsdoc\">Learn more about Solutions</a></p>\n",
+        "contentKind": "Solution",
+        "contentProductId": "[variables('_solutioncontentProductId')]",
+        "id": "[variables('_solutioncontentProductId')]",
+        "icon": "<img src=\"https://raw.githubusercontent.com/Azure/Azure-Sentinel/master/Solutions/Arcanna/Images/Arcanna.svg\" width=\"75px\" height=\"75px\">",
+        "contentId": "[variables('_solutionId')]",
+        "parentId": "[variables('_solutionId')]",
+        "source": {
+          "kind": "Solution",
+          "name": "Arcanna",
+          "sourceId": "[variables('_solutionId')]"
+        },
+        "author": {
+          "name": "Arcanna.ai",
+          "email": "[variables('_email')]"
+        },
+        "support": {
+          "name": "Arcanna.ai",
+          "email": "support@arcanna.ai",
+          "tier": "Partner",
+          "link": "https://arcanna.ai/contact"
+        },
+        "dependencies": {
+          "operator": "AND",
+          "criteria": [
+            {
+              "kind": "LogicAppsCustomConnector",
+              "contentId": "[variables('_ArcannaConnector')]",
+              "version": "[variables('playbookVersion1')]"
+            },
+            {
+              "kind": "Playbook",
+              "contentId": "[variables('_Arcanna-Sentinel-Triage')]",
+              "version": "[variables('playbookVersion2')]"
+            },
+            {
+              "kind": "Playbook",
+              "contentId": "[variables('_Arcanna-Sentinel-Feedback')]",
+              "version": "[variables('playbookVersion3')]"
+            }
+          ]
+        },
+        "firstPublishDate": "2026-10-14",
+        "lastPublishDate": "2026-10-14",
+        "providers": [
+          "Arcanna.ai"
+        ],
+        "categories": {
+          "domains": [
+            "Security - Automation (SOAR)"
+          ]
+        },
+        "description": "The Arcanna solution for Microsoft Sentinel provides AI-assisted incident triage and analyst feedback workflows. It includes an Arcanna Custom Azure Logic Apps Connector plus playbook templates for submitting Sentinel incidents to Arcanna, polling for decisions, writing results back to incidents, and returning analyst closure feedback to Arcanna."
+      },
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('_solutionId'))]"
+    }
+  ],
+  "outputs": {}
+}
