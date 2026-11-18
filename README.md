@@ -38,7 +38,7 @@ You will need this value later when creating the Sentinel playbooks.
 
 In Arcanna:
 
-`Platform Settings → Integrations → Create Integration → Azure Sentinel`
+`Integrations → Azure Sentinel → Create Integration`
 
 Create the Azure Sentinel integration and assign the API key created in the previous step.
 
@@ -48,7 +48,7 @@ The integration must use the same API key that will later be configured in the M
 
 Create a new Arcanna pipeline and configure the previously created Azure Sentinel integration as an input.
 
-After creating the pipeline, note its **Pipeline ID / Job ID**.
+After creating the pipeline, note its **Pipeline ID / Job ID** - either from the URL if you opened it or the first column of the table on the pipeline page.
 
 You will need this value when creating the Microsoft Sentinel triage playbook.
 
@@ -56,7 +56,7 @@ Before continuing, you should have:
 
 - Arcanna hostname or IP
 - Arcanna API key
-- Arcanna Azure Sentinel integration
+- Arcanna Azure Sentinel integration created and assigned to a pipeline
 - Arcanna Pipeline ID / Job ID
 
 ---
@@ -70,7 +70,7 @@ The custom connector provides Microsoft Logic Apps access to the Arcanna API.
 During deployment provide:
 
 - Arcanna protocol: `https` or `http`
-- Arcanna host / IP, including port if required
+- Arcanna host / IP, including port if required (standard is 443)
 - Custom connector name, normally `arcanna`
 
 ### Arcanna protocol
@@ -84,7 +84,7 @@ depending on how the Arcanna API is exposed.
 
 ### Arcanna Host
 
-Enter only the hostname or IP address.
+Enter only the hostname or IP address (potentially port if you're using a custom one for Rest API).
 
 Do **not** include:
 
@@ -93,33 +93,17 @@ Do **not** include:
 - `/api/v1`
 - any individual API endpoint
 
-If Arcanna uses a non-standard port, include the port.
-
-Examples:
-
-```text
-arcanna.example.com
-```
-
-```text
-arcanna.example.com:8443
-```
-
-```text
-10.20.30.40:9666
-```
-
 For example:
 
 ```text
 Protocol = http
-Host     = 10.20.30.40:9666
+Host     = 10.20.30.40
 ```
 
 The connector will build the Arcanna API URL automatically:
 
 ```text
-http://10.20.30.40:9666/api/v1
+http://10.20.30.40/api/v1
 ```
 
 ### Custom Connector Name
@@ -486,7 +470,7 @@ If more advanced routing is required, modify the triage Logic App after deployme
 The **Send Event** action can use:
 
 - a fixed Pipeline ID
-- a dynamically calculated Pipeline ID
+- a variable Pipeline ID (for instance one for each datasource type)
 
 This allows one Sentinel integration to route different incidents to different Arcanna pipelines.
 
